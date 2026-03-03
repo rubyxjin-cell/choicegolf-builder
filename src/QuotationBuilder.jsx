@@ -1,0 +1,4165 @@
+import { useState, useRef, useEffect } from "react";
+
+const loadHtml2Canvas = () => {
+  return new Promise((resolve, reject) => {
+    if (window.html2canvas) { resolve(window.html2canvas); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    script.onload = () => resolve(window.html2canvas);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+const loadHtmlToImage = () => {
+  return new Promise((resolve, reject) => {
+    if (window.htmlToImage) { resolve(window.htmlToImage); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js";
+    script.onload = () => resolve(window.htmlToImage);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+const loadXLSX = () => {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(window.XLSX); return; }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+const TEMPLATE_GROUPS = [
+  { country: "일본", flag: "🇯🇵", templates: {
+    miyakojima5n6d: {
+      name: "미야코지마 3색골프 5박6일",
+      productName: "[일본] 미야코지마 3색 골프 5박 6일",
+      hotel: "브리즈베이 마리나 -(2트윈/1싱글 기준)",
+      airline: "",
+      nights: "5박6일",
+      price: "",
+      _startDate: "2026-03-27",
+      _person: "5인 기준",
+      _rooms: [{ type: "2in1", count: 2 }, { type: "1in1", count: 1 }],
+      _hotelNameOnly: "브리즈베이 마리나",
+      included: ["숙박비용(브리즈베이 마리나 5박)", "조식 5회", "골프 5회 라운딩(그린피, 셀프+카트)", "공항↔호텔 송영 포함", "골프장 송영(리조트송영 또는 택시)"],
+      excluded: ["왕복항공료(별도 안내)", "중식 및 석식", "개인경비"],
+      remark: "■ 요금안내 (1인 기준, 엔화)\n · 트윈 3층: 236,000엔 / 트윈 2층: 259,000엔\n · 싱글 3층: 315,000엔 / 싱글 2층: 337,000엔\n · 트리플: 트윈에서 1인 12,000엔 다운\n\n※ 일정 및 요금은 항공 및 현지사정에 의해 변경될 수 있습니다.",
+      days: [
+        { label: "1일차", dow: "3/27 금", items: [
+          { place: "인천", transport: "", time: "", desc: "인천 국제공항 출발" },
+          { place: "미야코지마", transport: "송영", time: "", desc: "미야코지마 공항 도착 → 호텔 체크인" },
+          { place: "", transport: "택시", time: "", desc: "오션링크스 GC / 2B×1조 / 3B×1조 · 셀프+카트 (일몰 라운딩)", highlight: true },
+        ], hotelName: "브리즈베이 마리나", mealB: "", mealL: "불포함", mealD: "불포함" },
+        { label: "2일차", dow: "3/28 토", items: [
+          { place: "", transport: "리조트송영", time: "", desc: "호텔 조식 후 골프장 이동" },
+          { place: "", transport: "", time: "", desc: "시기라 CC / 2B×1조 / 3B×1조 · 셀프+카트", highlight: true },
+          { place: "", transport: "리조트송영", time: "", desc: "라운딩 후 호텔 복귀 / 자유석식" },
+        ], hotelName: "브리즈베이 마리나", mealB: "호텔식", mealL: "불포함", mealD: "불포함" },
+        { label: "3일차", dow: "3/29 일", items: [
+          { place: "", transport: "리조트송영", time: "", desc: "호텔 조식 후 골프장 이동" },
+          { place: "", transport: "", time: "", desc: "시기라 CC / 2B×1조 / 3B×1조 · 셀프+카트", highlight: true },
+          { place: "", transport: "리조트송영", time: "", desc: "라운딩 후 호텔 복귀 / 자유석식" },
+        ], hotelName: "브리즈베이 마리나", mealB: "호텔식", mealL: "불포함", mealD: "불포함" },
+        { label: "4일차", dow: "3/30 월", items: [
+          { place: "", transport: "택시", time: "", desc: "호텔 조식 후 골프장 이동" },
+          { place: "", transport: "", time: "", desc: "오션링크스 GC / 2B×1조 / 3B×1조 · 셀프+카트", highlight: true },
+          { place: "", transport: "택시", time: "", desc: "라운딩 후 호텔 복귀 / 자유석식" },
+        ], hotelName: "브리즈베이 마리나", mealB: "호텔식", mealL: "불포함", mealD: "불포함" },
+        { label: "5일차", dow: "3/31 화", items: [
+          { place: "", transport: "택시", time: "", desc: "호텔 조식 후 골프장 이동" },
+          { place: "", transport: "", time: "", desc: "에메랄드 CC / 2B×1조 / 3B×1조 · 셀프+카트", highlight: true },
+          { place: "", transport: "택시", time: "", desc: "라운딩 후 호텔 복귀 / 자유석식" },
+        ], hotelName: "브리즈베이 마리나", mealB: "호텔식", mealL: "불포함", mealD: "불포함" },
+        { label: "6일차", dow: "4/1 수", items: [
+          { place: "", transport: "리조트셔틀", time: "", desc: "호텔 조식 후 체크아웃" },
+          { place: "미야코지마", transport: "", time: "", desc: "공항 이동 → 귀국편 탑승" },
+        ], hotelName: "", mealB: "호텔식", mealL: "", mealD: "" },
+      ],
+    },
+  } },
+  { country: "대만", flag: "🇹🇼", templates: {} },
+  { country: "중국", flag: "🇨🇳", templates: {} },
+  { country: "베트남", flag: "🇻🇳", templates: {} },
+  { country: "태국", flag: "🇹🇭", templates: {} },
+  { country: "필리핀", flag: "🇵🇭", templates: {} },
+  { country: "국내", flag: "🇰🇷", templates: {} },
+  { country: "기타", flag: "🌏", templates: {} },
+  { country: "새로 만들기", flag: "📝", templates: {
+    empty: {
+      name: "빈 템플릿",
+      productName: "",
+      hotel: "",
+      airline: "",
+      nights: "3박4일",
+      price: "",
+      included: ["왕복항공요금(유류세 및 TAX)", "호텔 숙박비용", "호텔 조식", "골프비용(그린피,카트비)", "전일정 송영비용", "여행자보험"],
+      excluded: ["중식 및 석식"],
+      remark: "일정 및 요금은 항공 및 현지사정에 의해 다소 변경될 수 있습니다.",
+      days: [
+        { label: "1일차", dow: "", items: [
+          { place: "인천", transport: "", time: "", desc: "인천 국제공항 출발" },
+          { place: "", transport: "송영차량", time: "", desc: "공항 도착 / 호텔 이동" },
+        ], hotelName: "", mealB: "", mealL: "", mealD: "" },
+        { label: "2일차", dow: "", items: [
+          { place: "", transport: "송영차량", time: "", desc: "호텔 조식 후 골프장 이동" },
+          { place: "", transport: "", time: "", desc: "18홀 라운딩", highlight: true },
+          { place: "", transport: "", time: "", desc: "라운딩 후 자율석식 및 휴식" },
+        ], hotelName: "", mealB: "호텔식", mealL: "불포함", mealD: "불포함" },
+      ],
+    },
+  }},
+];
+
+// Flat lookup for backward compat
+const TEMPLATES = {};
+TEMPLATE_GROUPS.forEach(g => { Object.entries(g.templates).forEach(([k, v]) => { TEMPLATES[k] = v; }); });
+
+const LOGO_SRC = "data:image/png;base64,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";
+const LOGO_WHITE = "data:image/png;base64,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";
+
+const COLORS = {
+  primary: "#1a1a1a",
+  accent: "#2d6a4f",
+  accentLight: "#e8f0ec",
+  priceTxt: "#c0392b",
+  highlightTxt: "#2471a3",
+  airlineTxt: "#333",
+  remarkTxt: "#1565c0",
+  bankBg: "#faf5f4",
+  border: "#e8e8e8",
+  lightBg: "#fafafa",
+  gold: "#b8860b",
+  labelColor: "#555",
+};
+
+const COLOR_MAP = {
+  "빨강": "#c0392b", "빨": "#c0392b", "red": "#c0392b",
+  "파랑": "#2471a3", "파": "#2471a3", "blue": "#2471a3",
+  "초록": "#27ae60", "초": "#27ae60", "green": "#27ae60",
+  "주황": "#e67e22", "주": "#e67e22", "orange": "#e67e22",
+  "보라": "#8e44ad", "보": "#8e44ad", "purple": "#8e44ad",
+  "회색": "#888888", "회": "#888888", "gray": "#888888",
+};
+
+const parseColorText = (text) => {
+  if (!text) return text;
+  const regex = /\[([a-zA-Z가-힣]+)\](.*?)\[\/\1\]/g;
+  const parts = [];
+  let lastIdx = 0;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIdx) parts.push(text.slice(lastIdx, match.index));
+    const color = COLOR_MAP[match[1]] || match[1];
+    parts.push(<span key={match.index} style={{ color, fontWeight: "700" }}>{match[2]}</span>);
+    lastIdx = regex.lastIndex;
+  }
+  if (lastIdx < text.length) parts.push(text.slice(lastIdx));
+  return parts.length > 0 ? parts : text;
+};
+
+const BANK_INFO = "하나은행 103-910072-08204 ㈜초이스골프\n예약시 여권사본을 담당자 카카오톡으로 보내주시고, 예약금 1인 60만원 상기 계좌로 입금바랍니다.";
+
+// === 국내골프 요금 데이터 ===
+const DM_DN = ["일","월","화","수","목","금","토"];
+const DM_DTL = { weekday: "주중(월~목)", friday: "금요일", saturday: "토요일", sunday: "일요일" };
+const DM_PRODUCTS = {
+  alpensia: {
+    name: "알펜시아 골프패키지",
+    sub: "26년 오픈 기념 특가 · 1박2일 · 오픈~4/30일",
+    seasons: { s1: "오픈~4/09", s2: "4/10~4/30" },
+    seasonCut: "2026-04-10",
+    courses: {
+      "700GC (대중제)": {
+        s1: { weekday:[50000,60000], friday:[70000,80000], saturday:[110000,130000], sunday:[110000,100000] },
+        s2: { weekday:[60000,70000], friday:[80000,90000], saturday:[130000,150000], sunday:[130000,120000] },
+      },
+      "알펜시아CC (회원제)": {
+        s1: { weekday:[70000,80000], friday:[80000,90000], saturday:[130000,140000], sunday:[130000,120000] },
+        s2: { weekday:[80000,90000], friday:[100000,110000], saturday:[150000,160000], sunday:[150000,130000] },
+      },
+    },
+    rooms: {
+      "IC 스탠다드 (트윈/더블)":   { s1:[100000,140000], s2:[110000,150000] },
+      "HIR 슈퍼리어 (트윈/더블)":  { s1:[80000,100000],  s2:[80000,100000] },
+      "HIS 스탠다드22 (콘도22평)": { s1:[80000,100000],  s2:[80000,100000] },
+      "HIS 디럭스33 (콘도33평)":   { s1:[80000,140000],  s2:[100000,160000] },
+    },
+    breakfast: 20000,
+    surcharge: 20000,
+    defaultMarginGolf: 10000,
+    defaultMarginRoom: 5000,
+    notes: [
+      "여행사 마진 1팀 1박2일 기준 : 10만원 (1인 18홀 +1만원 / 객실 +5천원 적용)",
+      "조식+커피 이벤트 = 20,000원/1인 (패키지팀 적용) 1부팀 포함",
+      "4/10일 부터 1부 8:00분 부터 추가금 +2만 적용 (대중제/회원제 동일)",
+    ],
+  },
+};
+const dmFmt = n => (n||0).toLocaleString();
+const dmDow = ds => ds ? new Date(ds+"T00:00:00").getDay() : -1;
+const dmDayType = ds => { const d=dmDow(ds); return d>=1&&d<=4?"weekday":d===5?"friday":d===6?"saturday":"sunday"; };
+const dmRoomSat = ds => dmDow(ds)===6;
+const dmNextDay = ds => { if(!ds)return""; const d=new Date(ds+"T00:00:00"); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); };
+const dmFmtD = ds => { if(!ds)return""; const d=new Date(ds+"T00:00:00"); return `${d.getMonth()+1}/${d.getDate()}(${DM_DN[d.getDay()]})`; };
+
+const ROOM_TYPES = [
+  { id: "2in1", label: "2인1실", short: "2인1실" },
+  { id: "1in1", label: "1인1실", short: "1인1실" },
+  { id: "3in1_triple", label: "3인1실(트리플룸)", short: "3인1실(트리플)" },
+  { id: "3in1_extra", label: "3인1실(엑스트라베드)", short: "3인1실(엑베)" },
+  { id: "4in1", label: "4인1실", short: "4인1실" },
+];
+
+export default function QuotationBuilder({ apiKey }) {
+  const [mode, setMode] = useState("quote");
+  const [subMode, setSubMode] = useState("edit");
+  const [form, setForm] = useState(() => {
+    const t = TEMPLATES.miyakojima5n6d || TEMPLATES.empty;
+    const nights = t.nights || "3박4일";
+    const numDays = parseInt(nights.split("박")[1]) || 4;
+    let days = [...t.days];
+    for (let i = days.length; i < numDays; i++) {
+      days.push({ label: `${i + 1}일차`, dow: "", items: [{ place: "", transport: "", time: "", desc: "" }], hotelName: "", mealB: "", mealL: "", mealD: "" });
+    }
+    return { ...t, days };
+  });
+  const [person, setPerson] = useState("5인 기준");
+  const [startDate, setStartDate] = useState("2026-03-27");
+  const [selectedNights, setSelectedNights] = useState("5박6일");
+  const [rooms, setRooms] = useState([{ type: "2in1", count: 2 }, { type: "1in1", count: 1 }]);
+  const [hotelNameOnly, setHotelNameOnly] = useState("브리즈베이 마리나");
+  const [priceMode, setPriceMode] = useState("single"); // single | split
+  const [priceAdult, setPriceAdult] = useState("");
+  const [priceChild, setPriceChild] = useState("");
+  const [noAirfare, setNoAirfare] = useState(false);
+
+  const DOW_KR = ["일", "월", "화", "수", "목", "금", "토"];
+  const NIGHTS_OPTIONS = ["2박3일", "2박4일", "3박4일", "3박5일", "4박5일", "4박6일", "5박6일", "5박7일", "6박7일", "6박8일", "7박8일"];
+
+  const getDateStr = () => {
+    if (!startDate) return selectedNights;
+    const base = new Date(startDate);
+    if (isNaN(base.getTime())) return selectedNights;
+    const numDays = form.days.length;
+    const endD = new Date(base);
+    endD.setDate(endD.getDate() + numDays - 1);
+    const y = base.getFullYear();
+    return `${y}년 ${base.getMonth() + 1}월 ${base.getDate()}일 ~ ${endD.getMonth() + 1}월 ${endD.getDate()}일 / ${selectedNights}`;
+  };
+
+  const applyDates = (date, nights, currentDays) => {
+    const numDays = parseInt(nights.split("박")[1]) || currentDays.length;
+    let newDays;
+    if (numDays > currentDays.length) {
+      newDays = [...currentDays];
+      for (let i = currentDays.length; i < numDays; i++) {
+        newDays.push({
+          label: `${i + 1}일차`, dow: "",
+          items: [{ place: "", transport: "", time: "", desc: "" }],
+          hotelName: "", mealB: "", mealL: "", mealD: "",
+        });
+      }
+    } else {
+      newDays = currentDays.slice(0, numDays);
+    }
+    newDays = newDays.map((day, i) => {
+      const updated = { ...day, label: `${i + 1}일차` };
+      if (date) {
+        const d = new Date(date);
+        if (!isNaN(d.getTime())) {
+          d.setDate(d.getDate() + i);
+          updated.dow = `${d.getMonth() + 1}/${d.getDate()} ${DOW_KR[d.getDay()]}`;
+        }
+      }
+      return updated;
+    });
+    return newDays;
+  };
+
+  const handleStartDateChange = (val) => {
+    setStartDate(val);
+    if (!val) return;
+    setForm((p) => ({ ...p, nights: selectedNights, days: applyDates(val, selectedNights, p.days) }));
+  };
+
+  const handleNightsChange = (val) => {
+    setSelectedNights(val);
+    setForm((p) => ({ ...p, nights: val, days: applyDates(startDate, val, p.days) }));
+  };
+  const [contact, setContact] = useState("최진우 대표 1533-3160 / 010-5897-1053");
+  const [showFlightManager, setShowFlightManager] = useState(false);
+  const [newFlight, setNewFlight] = useState({
+    route: "", airline: "",
+    outbound: { no: "", dep: "", arr: "", from: "인천", to: "" },
+    inbound: { no: "", dep: "", arr: "", from: "", to: "인천" },
+  });
+
+  const applyFlight = (preset) => {
+    const ob = preset.outbound;
+    const ib = preset.inbound;
+    setForm((p) => {
+      const days = [...p.days];
+      if (days.length > 0) {
+        const firstDay = { ...days[0] };
+        const firstItems = [...firstDay.items];
+        if (firstItems.length >= 2) {
+          firstItems[0] = { ...firstItems[0], place: ob.from, transport: ob.no, time: ob.dep, desc: `${ob.from} 국제공항 출발 *출발 3시간 전 공항 도착하여 수속 진행*` };
+          firstItems[1] = { ...firstItems[1], place: ob.to, time: ob.arr, desc: `${ob.to} 국제공항 도착 / 골프장으로 이동` };
+        } else if (firstItems.length === 1) {
+          firstItems[0] = { ...firstItems[0], place: ob.from, transport: ob.no, time: ob.dep, desc: `${ob.from} 국제공항 출발` };
+        }
+        firstDay.items = firstItems;
+        days[0] = firstDay;
+      }
+      if (days.length > 1) {
+        const lastDay = { ...days[days.length - 1] };
+        const lastItems = [...lastDay.items];
+        const len = lastItems.length;
+        if (len >= 2) {
+          lastItems[len - 2] = { ...lastItems[len - 2], place: ib.from, transport: ib.no, time: ib.dep, desc: `${ib.from} 국제공항 출발` };
+          lastItems[len - 1] = { ...lastItems[len - 1], place: ib.to, time: ib.arr, desc: `${ib.to} 국제공항 도착` };
+        } else if (len === 1) {
+          lastItems[0] = { ...lastItems[0], place: ib.from, transport: ib.no, time: ib.dep, desc: `${ib.from} 국제공항 출발` };
+        }
+        lastDay.items = lastItems;
+        days[days.length - 1] = lastDay;
+      }
+      return { ...p, airline: preset.airline, days };
+    });
+  };
+
+  const addCustomFlight = () => {
+    if (!newFlight.route || !newFlight.airline || !selectedRegion) return;
+    const id = `custom-${Date.now()}`;
+    setRegionFlights(prev => ({ ...prev, [selectedRegion]: [...(prev[selectedRegion] || []), { ...newFlight, id }] }));
+    setNewFlight({ route: "", airline: "", outbound: { no: "", dep: "", arr: "", from: "인천", to: "" }, inbound: { no: "", dep: "", arr: "", from: "", to: "인천" } });
+  };
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const removeFlightPreset = (id) => {
+    if (confirmDeleteId === id) {
+      setRegionFlights(prev => ({ ...prev, [selectedRegion]: (prev[selectedRegion] || []).filter(f => f.id !== id) }));
+      setConfirmDeleteId(null);
+    } else {
+      setConfirmDeleteId(id);
+      setTimeout(() => setConfirmDeleteId(null), 3000);
+    }
+  };
+  const previewRef = useRef(null);
+  const brochureRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewResult, setReviewResult] = useState(null);
+  const [compact, setCompact] = useState(false);
+  // Compact mode spacing
+  const cPad = compact ? "3px 24px" : "8px 30px";
+  const cPadLg = compact ? "4px 24px" : "10px 30px";
+  const cPadTitle = compact ? "6px 24px 4px" : "14px 30px 10px";
+  const cInfoPad = compact ? "0 24px 3px" : "0 30px 8px";
+  const cInfoPadLast = compact ? "0 24px 4px" : "0 30px 10px";
+  const cItemPad = compact ? "1px 0" : "3px 0";
+  const cDayPad = compact ? "4px 0" : "8px 0";
+  const cCellPad = compact ? "3px 12px" : "6px 16px";
+  const cLineH = compact ? "1.35" : "1.5";
+  const cLineHR = compact ? "1.35" : "1.7";
+  const cSecPad = compact ? "2px 0" : "4px 0";
+  const cRemarkPad = compact ? "2px 0" : "6px 0";
+  const cColPad = compact ? "4px 0" : "6px 0";
+  const cHotelPad = compact ? "2px 0 1px" : "4px 0 2px";
+  const cFooterPad = compact ? "6px 20px" : "10px 20px";
+  const [selectedCountry, setSelectedCountry] = useState("일본");
+  const [selectedRegion, setSelectedRegion] = useState("");
+  const [savedTemplates, setSavedTemplates] = useState([]);
+  const [regionFlights, setRegionFlights] = useState({});
+  const currentFlights = regionFlights[selectedRegion] || [];
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveTemplateName, setSaveTemplateName] = useState("");
+  const [saveTemplateCountry, setSaveTemplateCountry] = useState("일본");
+  const [saveTemplateRegion, setSaveTemplateRegion] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const [showExportData, setShowExportData] = useState(false);
+  const [exportText, setExportText] = useState("");
+  const [showImportArea, setShowImportArea] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [confirmDeleteTplId, setConfirmDeleteTplId] = useState(null);
+  const [isNewSheet, setIsNewSheet] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
+
+  // === 국내골프 State ===
+  const [dmProduct, setDmProduct] = useState("alpensia");
+  const [dmDate, setDmDate] = useState("");
+  const [dmPpl, setDmPpl] = useState(4);
+  const [dmRmCnt, setDmRmCnt] = useState(2);
+  const [dmCourse, setDmCourse] = useState(Object.keys(DM_PRODUCTS.alpensia.courses)[0]);
+  const [dmT1, setDmT1] = useState(0);
+  const [dmT2, setDmT2] = useState(0);
+  const [dmRmType, setDmRmType] = useState(Object.keys(DM_PRODUCTS.alpensia.rooms)[0]);
+  const [dmBfOn, setDmBfOn] = useState(true);
+  const [dmSc1, setDmSc1] = useState(false);
+  const [dmSc2, setDmSc2] = useState(false);
+  const [dmMgGolf, setDmMgGolf] = useState(10000);
+  const [dmMgRoom, setDmMgRoom] = useState(5000);
+  const [dmCustomSell, setDmCustomSell] = useState("");
+
+  const emptyBrochure = {
+    type: "hotel",
+    nameKo: "",
+    nameEn: "",
+    subtitle: "",
+    heading: "",
+    description: "",
+    holes: "",
+    par: "",
+    yard: "",
+    heroImg: null,
+    logoImg: null,
+    subImgs: [null, null, null],
+  };
+  const [brochure, setBrochure] = useState({ ...emptyBrochure });
+  const confirmRef = useRef(null);
+  const invoiceRef = useRef(null);
+  const [confirm, setConfirm] = useState({
+    visitJapan: true,
+    hotelNameEn: "", hotelPhoneEn: "", hotelAddressEn: "", hotelZip: "",
+    flights: [
+      { name: "", airport: "", counter: "", depCity: "인천(ICN) 출발", depTime: "", arrCity: "", arrTime: "" },
+      { name: "", airport: "", counter: "", depCity: "", depTime: "", arrCity: "인천(ICN) 도착", arrTime: "" },
+    ],
+    productName: "", contactName: "최진우 대표 1533-3160 / 010-5897-1053",
+    startDate: "", nights: "3박4일",
+    people: "", hotelInfo: "", airline: "",
+    included: "왕복항공요금\n호텔숙박\n일정 내 식사(조/중/석식)\n그린피, 카트비\n송영비용\n여행자보험",
+    excluded: "기타 개인비용",
+    remark: "",
+    picketName: "", hasGuide: false, guideName: "", guidePhone: "", driverName: "", driverPhone: "",
+    days: [
+      { label: "1일차", date: "", items: [
+        { place: "인천", transport: "", time: "", desc: "인천 국제공항 출발", highlight: false, teeTime: "" }
+      ], mealB: "", mealL: "", mealD: "", hotel: "" },
+    ],
+    checklist: [
+      "고객 과실로 인한 전동카트 사고 발생시, 보험 적용이 되지 않으며 수리비가 청구되므로 주의 부탁드립니다.",
+      "일본에서는 실내에서 모자를 벗는 것이 기본 예절이므로, 클럽하우스 및 호텔 입장 시 모자 탈의 부탁드립니다.",
+      "일본 여행 도중 응급상황 구급차가 필요할 시 119(한국과 동일)로 연락 바랍니다(통역사 연결가능)\n(국내) 영사콜센터 번호: 02-3210-0404",
+      "여행 일정 중 항공 및 스케줄 등의 변경이 생기면 담당자 또는 카카오톡채널 @초이스골프 통하여 문의바랍니다.",
+    ],
+  });
+  const [confirmCountry, setConfirmCountry] = useState("일본");
+  const [confirmRegion, setConfirmRegion] = useState("");
+  const [savedConfirmTemplates, setSavedConfirmTemplates] = useState([
+    {
+      id: "ct-shizuoka-6n7d", country: "일본", region: "시즈오카/누마즈", name: "[시즈오카] 6박7일 골프투어",
+      data: {
+        visitJapan: true, hotelNameEn: "Daiwa Roynet Hotel Numazu", hotelPhoneEn: "", hotelAddressEn: "", hotelZip: "",
+        flights: [
+          { name: "7C1601", airport: "인천공항", counter: "", depCity: "인천(ICN) 출발", depTime: "07:10", arrCity: "시즈오카(FSZ) 도착", arrTime: "09:10" },
+          { name: "7C1604", airport: "", counter: "", depCity: "시즈오카(FSZ) 출발", depTime: "18:50", arrCity: "인천(ICN) 도착", arrTime: "21:15" },
+        ],
+        productName: "[일본 시즈오카] 6박 7일", contactName: "최인영 대표 02-545-5055 / 010-5340-4980",
+        startDate: "", nights: "6박7일",
+        people: "9인+가이드2인", hotelInfo: "일정표 내 호텔 참조 (2인1실)", airline: "제주항공",
+        included: "호텔숙박 - 2인1실\n조식 및 골프팀 클럽식 5회 (기본중식/음료 및 주류 별도), 3일차 석식(리조트 뷔페식)\n골프비용(그린피, 카트비)\n전일정 송영차량 2대\n한국가이드 전일정 동반 - 골프팀, 관광팀 가이드 2명\n왕복항공권 - 좌석지정 및 수화물 20KG\n여행자보험",
+        excluded: "자유일정시/관광팀 팁중식 및 전일정 석식",
+        remark: "석식은 메뉴 선택 후 가이드 동반입니다.\n일정 내 관광지는 원하시는 곳이나 가이드 추천으로 동행합니다.\n[red]일정 및 요금은 항공 및 현지사정에 의해 다소 변경될 수 있습니다.[/red]",
+        picketName: "", hasGuide: true, guideName: "박용수", guidePhone: "", driverName: "", driverPhone: "",
+        days: [
+          { label: "1일차", date: "", items: [
+            { place: "인천", transport: "7C1601", time: "07:10", desc: "인천 국제공항 출발 [red]*출발2시간 30분전 가이드동반수속*[/red]", highlight: false, teeTime: "" },
+            { place: "시즈오카", transport: "7C1601", time: "09:10", desc: "박용수님 시즈오카 국제공항 선도착", highlight: false, teeTime: "" },
+            { place: "인천", transport: "7C1603", time: "16:05", desc: "인천 국제공항 출발 [red]*출발2시간 30분전 가이드동반수속*[/red]", highlight: false, teeTime: "" },
+            { place: "시즈오카", transport: "", time: "18:00", desc: "시즈오카 국제공항 도착 후 가이드차량으로 호텔이동(약 90분)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "호텔 체크인 후 석식(호텔인근 석식장소 안내) 및 휴식", highlight: false, teeTime: "" },
+          ], mealB: "불포함", mealL: "", mealD: "불포함", hotel: "다이와로이넷 호텔 누마즈" },
+          { label: "2일차", date: "", items: [
+            { place: "", transport: "", time: "", desc: "호텔 조식(07:00~) 후", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "8:10", desc: "골프팀(7인) 골프장 이동(36km, 40분) / 휴양팀 관광(가이드동반)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "09:48", desc: "GORA KADAN FUJI GOLF 18H 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "16:30", desc: "라운딩 후 호텔이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "18:00", desc: "호텔 인근 석식장소 안내 및 석식 (현지식) 후 휴식", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "클럽식", mealD: "불포함", hotel: "다이와로이넷 호텔 누마즈" },
+          { label: "3일차", date: "", items: [
+            { place: "", transport: "", time: "", desc: "호텔 조식(07:00) 후 체크아웃", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "8:50", desc: "골프팀(7인) 골프장 이동(10km, 25분) / 휴양팀 관광 (가이드동반)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "10:10", desc: "NUMAZUKOKUSAI Country Club 18H 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "16:30", desc: "라운딩 후 호텔이동(38km, 60분)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "17:30", desc: "체크인 후 온천 및 뷔페식 석식만찬 (90분), 온천욕 및 휴식", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "클럽식", mealD: "뷔페식", hotel: "아타미온천 호텔오오노야" },
+          { label: "4일차", date: "", items: [
+            { place: "", transport: "", time: "", desc: "호텔 조식(07:00) 후 아타미지구 산책 및 온천", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "10:00", desc: "호텔 체크아웃 후 아타미성 방문 및 아타미 해변 중식(현지식) 안내", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "13:00", desc: "인근 유가와라온천지구 (20분) 또는 고텐바지구로 이동 (60분)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "17:30", desc: "호텔 체크인 후 인근 석식장소 안내, 석식 (현지식) 후 휴식", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "불포함", mealD: "불포함", hotel: "호텔 그랜드 후지" },
+          { label: "5일차", date: "", items: [
+            { place: "", transport: "", time: "", desc: "호텔 조식(07:00) 후", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "8:20", desc: "골프팀(7인) 골프장 이동(39km, 60분) / 휴양팀 관광(가이드동반)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "10:08", desc: "FUJI CLASSIC 18H 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "16:30", desc: "라운딩 후 호텔이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "18:00", desc: "호텔 인근 석식장소 안내 및 석식 (현지식) 후 휴식", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "클럽식", mealD: "불포함", hotel: "호텔 그랜드 후지" },
+          { label: "6일차", date: "", items: [
+            { place: "", transport: "", time: "", desc: "휴양팀 호텔 조식(07:00) 후 체크아웃", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "8:00", desc: "골프팀(7인) 골프장 이동(37km, 55분) / 조식은 차내 경식", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "08:30", desc: "ASAGIRI Country Club 18H 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "15:30", desc: "라운딩 후 호텔이동(95km, 90분)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "17:00", desc: "체크인 후 호텔 인근 석식장소 안내, 석식 (현지식) 후 휴식", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "클럽식", mealD: "불포함", hotel: "호텔 오레" },
+          { label: "7일차", date: "", items: [
+            { place: "", transport: "", time: "6:40", desc: "박용수님 조식(06:00~) 후 시즈오카공항으로 출발(가이드송영)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "7:50", desc: "골프팀(7인) 조식 후 체크아웃 및 골프장 이동(30km, 40분)", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "09:15", desc: "HOLON Golf Club 18H 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "16:00", desc: "라운딩 후 시즈오카 공항이동 (12km, 20분)", highlight: false, teeTime: "" },
+            { place: "", transport: "7C1604", time: "18:50", desc: "체크인 후 석식장소 안내, 석식 (현지식) 후 휴식", highlight: false, teeTime: "" },
+            { place: "인천", transport: "", time: "21:15", desc: "인천 국제공항 도착", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "클럽식", mealD: "불포함", hotel: "" },
+        ],
+        checklist: [
+          "고객 과실로 인한 전동카트 사고 발생시, 보험 적용이 되지 않으며 수리비가 청구되므로 주의 부탁드립니다.",
+          "일본에서는 실내에서 모자를 벗는 것이 기본 예절이므로, 클럽하우스 및 호텔 입장 시 모자 탈의 부탁드립니다.",
+          "일본 여행 도중 응급상황 구급차가 필요할 시 119(한국과 동일)로 연락 바랍니다(통역사 연결가능)\n(국내) 영사콜센터 번호: 02-3210-0404",
+          "여행 일정 중 항공 및 스케줄 등의 변경이 생기면 담당자 또는 카카오톡채널 @초이스골프 통하여 문의바랍니다.",
+        ],
+      },
+    },
+    {
+      id: "ct-taipei-3n4d", country: "대만", region: "타이페이", name: "[대만] 타이페이 명문 3색 골프",
+      data: {
+        visitJapan: false, hotelNameEn: "", hotelPhoneEn: "", hotelAddressEn: "", hotelZip: "",
+        flights: [
+          { name: "CI 163", airport: "인천공항", counter: "", depCity: "인천(ICN) 출발", depTime: "20:15", arrCity: "타이페이 도착", arrTime: "22:10" },
+          { name: "CI 9066", airport: "", counter: "", depCity: "타이페이 출발", depTime: "19:25", arrCity: "인천(ICN) 도착", arrTime: "22:55" },
+        ],
+        productName: "[대만] 타이페이 명문 3색 골프", contactName: "최인영 대표 010-5340-4980",
+        startDate: "", nights: "3박4일",
+        people: "8인", hotelInfo: "쉐라톤 그랜드 타이페이(5성급) -2인1실 기준", airline: "중화항공",
+        included: "왕복항공요금(유류세 및 TAX)\n호텔 숙박비용\n호텔 조식\n석식\n골프비용(그린피)\n전일정 단독차량(하루 11시간 기준)\n여행자보험",
+        excluded: "클럽 중식($25/1회/인)\n기사 가이드팁($40/인)\n캐디&카트비&팁($50/18H/인)",
+        remark: "차량은 단독으로 이용하며, 1일 11시간 기준 이용 가능합니다.\n[red]전신 마사지 60분 $40/인, 발마사지 40분 $30/인[/red]",
+        picketName: "초이스골프", hasGuide: true, guideName: "손의순(남)", guidePhone: "0975-228-778", driverName: "", driverPhone: "",
+        days: [
+          { label: "1일차", date: "", items: [
+            { place: "인천", transport: "CI 163", time: "20:15", desc: "인천 국제공항 출발", highlight: false, teeTime: "" },
+            { place: "타이페이", transport: "송영차량", time: "22:10", desc: "타오위안 국제 공항 도착 / 호텔 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "가이드 피켓미팅[초이스골프] / 호텔로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "호텔 체크인 후 휴식", highlight: false, teeTime: "" },
+          ], mealB: "", mealL: "", mealD: "", hotel: "Sheraton Grand Taipei Hotel ☎ +886 2 2321 5511" },
+          { label: "2일차", date: "", items: [
+            { place: "타이페이", transport: "송영차량", time: "", desc: "호텔 조식 후 골프장으로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "11:16", desc: "양승CC 18홀 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "라운딩 후 석식장소로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "석식 후 휴식 및 자유시간", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "불포함", mealD: "현지식", hotel: "Sheraton Grand Taipei Hotel ☎ +886 2 2321 5511" },
+          { label: "3일차", date: "", items: [
+            { place: "타이페이", transport: "송영차량", time: "", desc: "호텔 조식 후 골프장으로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "11:12", desc: "미라마CC 18홀 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "라운딩 후 석식장소로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "석식 후 휴식 및 자유시간", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "불포함", mealD: "현지식", hotel: "Sheraton Grand Taipei Hotel ☎ +886 2 2321 5511" },
+          { label: "4일차", date: "", items: [
+            { place: "타이페이", transport: "송영차량", time: "", desc: "호텔 조식 후 체크아웃 / 골프장으로 이동", highlight: false, teeTime: "" },
+            { place: "", transport: "", time: "11:24", desc: "홍희대계CC 18홀 라운딩", highlight: true, teeTime: "" },
+            { place: "", transport: "", time: "", desc: "라운딩 후 공항으로 이동", highlight: false, teeTime: "" },
+            { place: "타이페이", transport: "", time: "19:25", desc: "타오위안 국제공항 출발", highlight: false, teeTime: "" },
+            { place: "인천", transport: "", time: "22:55", desc: "인천 국제공항 도착", highlight: false, teeTime: "" },
+          ], mealB: "호텔식", mealL: "불포함", mealD: "", hotel: "" },
+        ],
+        checklist: [
+          "여행 일정 중 항공 및 스케줄 등의 변경이 생기면 담당자 또는 카카오톡채널 @초이스골프 통하여 문의바랍니다.",
+        ],
+      },
+    },
+  ]);
+  const [activeConfirmTplId, setActiveConfirmTplId] = useState(null);
+  const [showConfirmSaveDialog, setShowConfirmSaveDialog] = useState(false);
+  const [saveConfirmTplCountry, setSaveConfirmTplCountry] = useState("일본");
+  const [saveConfirmTplRegion, setSaveConfirmTplRegion] = useState("");
+  const [saveConfirmTplName, setSaveConfirmTplName] = useState("");
+  const [confirmDeleteCtId, setConfirmDeleteCtId] = useState(null);
+  const [jpgUploading, setJpgUploading] = useState(false);
+  const [jpgUploadMsg, setJpgUploadMsg] = useState("");
+  const updateConfirm = (field, value) => setConfirm(p => ({ ...p, [field]: value }));
+  const updateConfirmFlight = (idx, field, value) => setConfirm(p => ({ ...p, flights: p.flights.map((f, i) => i === idx ? { ...f, [field]: value } : f) }));
+  const updateConfirmDay = (di, field, value) => setConfirm(p => ({ ...p, days: p.days.map((d, i) => i === di ? { ...d, [field]: value } : d) }));
+  const updateConfirmDayItem = (di, ii, field, value) => setConfirm(p => ({ ...p, days: p.days.map((d, i) => i === di ? { ...d, items: d.items.map((it, j) => j === ii ? { ...it, [field]: value } : it) } : d) }));
+  const addConfirmDayItem = (di) => setConfirm(p => ({ ...p, days: p.days.map((d, i) => i === di ? { ...d, items: [...d.items, { place: "", transport: "", time: "", desc: "", highlight: false, teeTime: "" }] } : d) }));
+  const removeConfirmDayItem = (di, ii) => setConfirm(p => ({ ...p, days: p.days.map((d, i) => i === di ? { ...d, items: d.items.filter((_, j) => j !== ii) } : d) }));
+  const addConfirmDay = () => setConfirm(p => ({ ...p, days: [...p.days, { label: `${p.days.length + 1}일차`, date: "", items: [{ place: "", transport: "", time: "", desc: "", highlight: false, teeTime: "" }], mealB: "", mealL: "", mealD: "", hotel: "" }] }));
+  const removeConfirmDay = (di) => setConfirm(p => ({ ...p, days: p.days.filter((_, i) => i !== di) }));
+
+  // Confirm date auto-calc
+  const CONFIRM_NIGHTS = ["2박3일","2박4일","3박4일","3박5일","4박5일","4박6일","5박6일","5박7일","6박7일","6박8일","7박8일"];
+  const DOW_KR2 = ["일","월","화","수","목","금","토"];
+  const getConfirmDateRange = () => {
+    if (!confirm.startDate || !confirm.nights) return confirm.nights || "";
+    const base = new Date(confirm.startDate + "T00:00:00");
+    if (isNaN(base.getTime())) return confirm.nights;
+    const numDays = parseInt(confirm.nights.split("박")[1]) || confirm.days.length;
+    const end = new Date(base); end.setDate(end.getDate() + numDays - 1);
+    return `${base.getFullYear()}년 ${base.getMonth()+1}월 ${base.getDate()}일 ~ ${end.getMonth()+1}월 ${end.getDate()}일 / ${confirm.nights}`;
+  };
+  const applyConfirmDates = (sd, nights) => {
+    const numDays = parseInt(nights.split("박")[1]) || confirm.days.length;
+    let newDays = [...confirm.days];
+    while (newDays.length < numDays) newDays.push({ label: `${newDays.length+1}일차`, date: "", items: [{ place: "", transport: "", time: "", desc: "", highlight: false, teeTime: "" }], mealB: "", mealL: "", mealD: "", hotel: "" });
+    if (newDays.length > numDays) newDays = newDays.slice(0, numDays);
+    if (sd) {
+      const base = new Date(sd + "T00:00:00");
+      newDays = newDays.map((d, i) => {
+        const dt = new Date(base); dt.setDate(dt.getDate() + i);
+        return { ...d, label: `${i+1}일차`, date: `${dt.getMonth()+1}/${dt.getDate()} ${DOW_KR2[dt.getDay()]}` };
+      });
+    }
+    setConfirm(p => ({ ...p, startDate: sd, nights, days: newDays }));
+  };
+  // Load saved template into confirm
+  const loadTemplateToConfirm = (tpl) => {
+    const data = tpl.data;
+    if (!data) return;
+    const tplNights = data.nights || "3박4일";
+    const mappedDays = (data.days || []).map((d, i) => ({
+      label: d.label || `${i+1}일차`, date: "",
+      items: (d.items || []).map(it => ({ place: it.place||"", transport: it.transport||"", time: it.time||"", desc: it.desc||"", highlight: !!it.highlight, teeTime: "" })),
+      mealB: d.mealB||"", mealL: d.mealL||"", mealD: d.mealD||"",
+      hotel: d.hotelName || data._hotelNameOnly || "",
+    }));
+    const rf = (regionFlights[tpl.region] || [])[0];
+    const mappedFlights = rf ? [
+      { name: rf.airline||"", airport: "", counter: "", depCity: `${rf.outbound?.from||"인천"}(ICN) 출발`, depTime: rf.outbound?.dep||"", arrCity: `${rf.outbound?.to||""} 도착`, arrTime: rf.outbound?.arr||"" },
+      { name: rf.airline||"", airport: "", counter: "", depCity: `${rf.inbound?.from||""} 출발`, depTime: rf.inbound?.dep||"", arrCity: `${rf.inbound?.to||"인천"}(ICN) 도착`, arrTime: rf.inbound?.arr||"" },
+    ] : undefined;
+    setConfirm(p => ({
+      ...p,
+      productName: data.productName || "",
+      nights: tplNights,
+      hotelInfo: data._hotelNameOnly || data.hotel || "",
+      airline: data.airline || "",
+      included: Array.isArray(data.included) ? data.included.join("\n") : (data.included || p.included),
+      excluded: Array.isArray(data.excluded) ? data.excluded.join("\n") : (data.excluded || p.excluded),
+      remark: data.remark || "",
+      days: mappedDays.length > 0 ? mappedDays : p.days,
+      ...(mappedFlights ? { flights: mappedFlights } : {}),
+    }));
+    setConfirmCountry(tpl.country || "일본");
+    setConfirmRegion(tpl.region || "");
+  };
+
+  // === CONFIRM TEMPLATE CRUD ===
+  const loadConfirmTemplate = (tpl) => {
+    if (!tpl.data) return;
+    setConfirm({ ...tpl.data });
+    setConfirmCountry(tpl.country || "일본");
+    setConfirmRegion(tpl.region || "");
+    setActiveConfirmTplId(tpl.id);
+  };
+
+  const saveConfirmTemplate = () => {
+    if (!saveConfirmTplName.trim() || !saveConfirmTplRegion.trim()) return;
+    const tplData = { ...confirm };
+    if (activeConfirmTplId) {
+      setSavedConfirmTemplates(prev => prev.map(t => t.id === activeConfirmTplId ? { ...t, country: saveConfirmTplCountry, region: saveConfirmTplRegion.trim(), name: saveConfirmTplName.trim(), data: tplData } : t));
+    } else {
+      const newId = `ct-${Date.now()}`;
+      setSavedConfirmTemplates(prev => [...prev, { id: newId, country: saveConfirmTplCountry, region: saveConfirmTplRegion.trim(), name: saveConfirmTplName.trim(), data: tplData }]);
+      setActiveConfirmTplId(newId);
+    }
+    setConfirmRegion(saveConfirmTplRegion.trim());
+    setShowConfirmSaveDialog(false);
+    setSaveConfirmTplName("");
+  };
+
+  const deleteConfirmTemplate = (id) => {
+    if (confirmDeleteCtId === id) {
+      setSavedConfirmTemplates(prev => prev.filter(t => t.id !== id));
+      if (activeConfirmTplId === id) setActiveConfirmTplId(null);
+      setConfirmDeleteCtId(null);
+    } else {
+      setConfirmDeleteCtId(id);
+      setTimeout(() => setConfirmDeleteCtId(null), 3000);
+    }
+  };
+
+  // === INVOICE STATE ===
+  const [invoice, setInvoice] = useState({
+    invMode: "person", // "person" (인별) or "item" (항목별)
+    productName: "미야코지마 3색골프",
+    departureDate: "2026-02-27",
+    nights: "3박4일",
+    totalPersons: "2",
+    repName: "김명옥님 외 1인",
+    // --- 인별 모드 ---
+    customers: [
+      { name: "김명옥님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
+      { name: "박덕훈님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
+    ],
+    defaultPrice: "2,460,000",
+    defaultDeposit: "800,000",
+    // --- 항목별 모드 ---
+    items: [
+      { name: "2/26 구마모토 골프", unitPrice: "1,880,000", qty: "4" },
+      { name: "항공 취소수수료", unitPrice: "150,000", qty: "3" },
+    ],
+    payments: [
+      { label: "예약금", amount: "4,800,000" },
+      { label: "중도금", amount: "4,000,000" },
+    ],
+    // --- 공통 ---
+    dueDate: "2026-02-20",
+    dueMsg: "까지 잔금 요청 드립니다.",
+    tableNotes: [],
+    bankName: "하나은행",
+    bankAccount: "103-910072-08204",
+    bankHolder: "㈜초이스골프",
+    contactName: "최인영 대표",
+    contactPhone: "010-5340-4980",
+    cancelPolicy: [
+      "본 상품의 예약 및 취소는 「국외여행표준약관」 제5조[특약]에 근거한 특별 약관이 적용됩니다.",
+      "항공 발권 후 취소 시에는 <항공사가 부과하는 별도 취소 수수료> 추가됩니다.",
+      "당사 예약 후 취소 시에는 규정 외 별도 여행사 업무 수수료(1인당) 5만원 부과 됩니다.",
+      "취소 요청은 영업일 기준(17:00) 이전 까지 유효합니다.",
+      "여행 개시 31일전(~31) 취소 시 : 계약금 전액 환불(항공 발권 후 취소수수료 및 여행사 업무수수료 1인 5만원 별도)",
+      "여행 개시 20일전(30~20) 취소 시 : 여행 요금의 10% 위약금 공제 후 환불",
+      "여행 개시 10일전(19~10) 취소 시 : 여행 요금의 30% 위약금 공제 후 환불",
+      "여행 개시 08일전(09~08) 취소 시 : 여행 요금의 50% 위약금 공제 후 환불",
+      "여행 개시 01일전(07~01) 취소 시 : 여행 요금의 80% 위약금 공제 후 환불",
+      "여행 개시 당일 취소 : 여행 요금의 100% 배상",
+    ],
+  });
+  const updateInvoice = (field, value) => setInvoice(p => ({ ...p, [field]: value }));
+  // --- 인별 helpers ---
+  const updateInvoiceCustomer = (idx, field, value) => setInvoice(p => ({
+    ...p, customers: p.customers.map((c, i) => i === idx ? { ...c, [field]: value } : c)
+  }));
+  const addInvoiceCustomer = () => setInvoice(p => ({
+    ...p, customers: [...p.customers, { name: "", price: "", deposit: "", midPay: "", linked: false }]
+  }));
+  const removeInvoiceCustomer = (idx) => setInvoice(p => ({
+    ...p, customers: p.customers.filter((_, i) => i !== idx)
+  }));
+  const applyDefaults = () => setInvoice(p => ({
+    ...p, customers: p.customers.map(c => ({
+      ...c, price: c.price || p.defaultPrice, deposit: c.deposit || p.defaultDeposit,
+    }))
+  }));
+  // --- 항목별 helpers ---
+  const updateInvoiceItem = (idx, field, value) => setInvoice(p => ({
+    ...p, items: p.items.map((it, i) => i === idx ? { ...it, [field]: value } : it)
+  }));
+  const addInvoiceItem = () => setInvoice(p => ({
+    ...p, items: [...p.items, { name: "", unitPrice: "", qty: "1" }]
+  }));
+  const removeInvoiceItem = (idx) => setInvoice(p => ({
+    ...p, items: p.items.filter((_, i) => i !== idx)
+  }));
+  const updateInvoicePayment = (idx, field, value) => setInvoice(p => ({
+    ...p, payments: p.payments.map((pm, i) => i === idx ? { ...pm, [field]: value } : pm)
+  }));
+  const addInvoicePayment = () => setInvoice(p => ({
+    ...p, payments: [...p.payments, { label: "", amount: "" }]
+  }));
+  const removeInvoicePayment = (idx) => setInvoice(p => ({
+    ...p, payments: p.payments.filter((_, i) => i !== idx)
+  }));
+  const updateInvoiceTableNote = (idx, value) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.map((n, i) => i === idx ? value : n) }));
+  const addInvoiceTableNote = () => setInvoice(p => ({ ...p, tableNotes: [...p.tableNotes, ""] }));
+  const removeInvoiceTableNote = (idx) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.filter((_, i) => i !== idx) }));
+  const updateInvoiceCancelPolicy = (idx, value) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.map((c, i) => i === idx ? value : c) }));
+  const addInvoiceCancelPolicy = () => setInvoice(p => ({ ...p, cancelPolicy: [...p.cancelPolicy, ""] }));
+  const removeInvoiceCancelPolicy = (idx) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.filter((_, i) => i !== idx) }));
+  // Number helpers
+  const parseNum = (s) => { const n = parseInt(String(s).replace(/[^0-9]/g, ""), 10); return isNaN(n) ? 0 : n; };
+  const fmtNum = (n) => n > 0 ? n.toLocaleString() : "";
+  const autoFmtPrice = (val) => { const raw = val.replace(/[^0-9]/g, ""); const n = parseInt(raw, 10); return isNaN(n) ? "" : n.toLocaleString(); };
+  const handleItemFieldInput = (idx, field) => (e) => updateInvoiceItem(idx, field, field === "qty" ? e.target.value : autoFmtPrice(e.target.value));
+  const handleCustFieldInput = (idx, field) => (e) => updateInvoiceCustomer(idx, field, autoFmtPrice(e.target.value));
+  // --- 인별 Calculations ---
+  const invCusts = invoice.customers.filter(c => c.name);
+  const invCustData = invCusts.map(c => {
+    const price = parseNum(c.price || invoice.defaultPrice);
+    const dep = parseNum(c.deposit);
+    const mid = parseNum(c.midPay);
+    return { ...c, _price: price, _dep: dep, _mid: mid, _bal: Math.max(0, price - dep - mid) };
+  });
+  const invCustTotalPrice = invCustData.reduce((s, c) => s + c._price, 0);
+  const invCustTotalDep = invCustData.reduce((s, c) => s + c._dep, 0);
+  const invCustTotalMid = invCustData.reduce((s, c) => s + c._mid, 0);
+  const invCustTotalBal = invCustData.reduce((s, c) => s + c._bal, 0);
+  const invCustShowDep = invCustData.some(c => c._dep > 0);
+  const invCustShowMid = invCustData.some(c => c._mid > 0);
+  // Billing groups: group linked customers for payment display
+  const invBillingGroups = (() => {
+    const groups = [];
+    invCustData.forEach((c) => {
+      if (c.linked && groups.length > 0) {
+        groups[groups.length - 1].members.push(c);
+      } else {
+        groups.push({ members: [c] });
+      }
+    });
+    return groups.map(g => ({
+      names: g.members.map(m => m.name).join(" / "),
+      count: g.members.length,
+      totalPrice: g.members.reduce((s, m) => s + m._price, 0),
+      totalDep: g.members.reduce((s, m) => s + m._dep, 0),
+      totalMid: g.members.reduce((s, m) => s + m._mid, 0),
+      totalBal: g.members.reduce((s, m) => s + m._bal, 0),
+    }));
+  })();
+  // --- 항목별 Calculations ---
+  const invItems = invoice.items.filter(it => it.name);
+  const invItemData = invItems.map(it => {
+    const up = parseNum(it.unitPrice);
+    const q = parseNum(it.qty) || 1;
+    return { ...it, _up: up, _qty: q, _total: up * q };
+  });
+  const invGrandTotal = invItemData.reduce((s, it) => s + it._total, 0);
+  const invTotalPaid = invoice.payments.reduce((s, pm) => s + parseNum(pm.amount), 0);
+  const invBalance = Math.max(0, invGrandTotal - invTotalPaid);
+
+  // Load on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await window.storage.get("tpl-data");
+        if (r && r.value) {
+          const parsed = JSON.parse(r.value);
+          if (parsed.savedTemplates) setSavedTemplates(parsed.savedTemplates);
+          if (parsed.savedConfirmTemplates) setSavedConfirmTemplates(prev => {
+            const storedIds = new Set(parsed.savedConfirmTemplates.map(t => t.id));
+            const defaults = prev.filter(t => !storedIds.has(t.id));
+            return [...defaults, ...parsed.savedConfirmTemplates];
+          });
+          if (parsed.regionFlights) setRegionFlights(parsed.regionFlights);
+          if (parsed.tabData) {
+            const td = parsed.tabData;
+            if (td.form) setForm(td.form);
+            if (td.selectedNights) setSelectedNights(td.selectedNights);
+            if (td.rooms) setRooms(td.rooms);
+            if (td.hotelNameOnly !== undefined) setHotelNameOnly(td.hotelNameOnly);
+            if (td.priceMode) setPriceMode(td.priceMode);
+            if (td.priceAdult !== undefined) setPriceAdult(td.priceAdult);
+            if (td.priceChild !== undefined) setPriceChild(td.priceChild);
+            if (td.noAirfare !== undefined) setNoAirfare(td.noAirfare);
+            if (td.selectedCountry) setSelectedCountry(td.selectedCountry);
+            if (td.selectedRegion !== undefined) setSelectedRegion(td.selectedRegion);
+            if (td.confirm && td.confirm.startDate !== undefined) setConfirm(td.confirm);
+            if (td.confirmCountry) setConfirmCountry(td.confirmCountry);
+            if (td.confirmRegion !== undefined) setConfirmRegion(td.confirmRegion);
+            if (td.brochure) setBrochure(td.brochure);
+            if (td.invoice) setInvoice(prev => ({ ...prev, ...td.invoice, items: td.invoice.items || prev.items }));
+          }
+        }
+      } catch (e) { /* first time, no data */ }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  // Auto-save whenever data changes (after initial load)
+  useEffect(() => {
+    if (!loaded) return;
+    const save = async () => {
+      try {
+        await window.storage.set("tpl-data", JSON.stringify({
+          savedTemplates, savedConfirmTemplates, regionFlights,
+          tabData: {
+            form, selectedNights, rooms, hotelNameOnly, priceMode, priceAdult, priceChild, noAirfare, selectedCountry, selectedRegion,
+            confirm, confirmCountry, confirmRegion, brochure, invoice,
+          },
+        }));
+      } catch (e) { /* silently fail */ }
+    };
+    save();
+  }, [savedTemplates, savedConfirmTemplates, regionFlights, form, selectedNights, rooms, hotelNameOnly, priceMode, priceAdult, priceChild, noAirfare, confirm, confirmCountry, confirmRegion, brochure, invoice, loaded]);
+
+  const saveCurrentAsTemplate = () => {
+    if (!saveTemplateName.trim() || !saveTemplateRegion.trim()) return;
+    const tplData = { ...form, nights: selectedNights, _hotelNameOnly: hotelNameOnly, _rooms: rooms, _priceMode: priceMode, _priceAdult: priceAdult, _priceChild: priceChild, _noAirfare: noAirfare };
+    if (activeTemplateId) {
+      setSavedTemplates(prev => prev.map(t => t.id === activeTemplateId ? { ...t, country: saveTemplateCountry, region: saveTemplateRegion.trim(), name: saveTemplateName.trim(), data: tplData } : t));
+    } else {
+      const newId = `s-${Date.now()}`;
+      setSavedTemplates(prev => [...prev, { id: newId, country: saveTemplateCountry, region: saveTemplateRegion.trim(), name: saveTemplateName.trim(), data: tplData }]);
+      setActiveTemplateId(newId);
+    }
+    setSelectedRegion(saveTemplateRegion.trim());
+    setShowSaveDialog(false);
+    setSaveTemplateName("");
+  };
+
+  const deleteSavedTemplate = (id) => {
+    if (confirmDeleteTplId === id) {
+      setSavedTemplates(prev => prev.filter(t => t.id !== id));
+      if (activeTemplateId === id) setActiveTemplateId(null);
+      setConfirmDeleteTplId(null);
+    } else {
+      setConfirmDeleteTplId(id);
+      setTimeout(() => setConfirmDeleteTplId(null), 3000);
+    }
+  };
+
+  const loadSavedTemplate = (tmpl) => {
+    setForm({ ...tmpl.data });
+    setSelectedNights(tmpl.data.nights || "3박4일");
+    setStartDate("");
+    if (tmpl.data._hotelNameOnly) setHotelNameOnly(tmpl.data._hotelNameOnly);
+    if (tmpl.data._rooms) setRooms(tmpl.data._rooms);
+    setPriceMode(tmpl.data._priceMode || "single");
+    setPriceAdult(tmpl.data._priceAdult || "");
+    setPriceChild(tmpl.data._priceChild || "");
+    setNoAirfare(tmpl.data._noAirfare || false);
+    setSelectedRegion(tmpl.region || "");
+    setActiveTemplateId(tmpl.id);
+    setIsNewSheet(false);
+  };
+
+  // Export all data as text to copy
+  const exportData = () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      savedTemplates,
+      savedConfirmTemplates,
+      regionFlights,
+      tabData: {
+        form, selectedNights, rooms, hotelNameOnly, priceMode, priceAdult, priceChild, noAirfare, selectedCountry, selectedRegion,
+        confirm, confirmCountry, confirmRegion, brochure, invoice,
+      },
+    };
+    setExportText(JSON.stringify(data));
+    setShowExportData(true);
+  };
+
+  // Import data from text paste
+  const importFromText = () => {
+    try {
+      const data = JSON.parse(importText);
+      let tCount = 0;
+      if (data.savedTemplates) {
+        setSavedTemplates(prev => {
+          const existIds = new Set(prev.map(t => t.id));
+          const newOnes = data.savedTemplates.filter(t => !existIds.has(t.id));
+          tCount = newOnes.length;
+          return [...prev, ...newOnes];
+        });
+        tCount = data.savedTemplates.length;
+      }
+      if (data.savedConfirmTemplates) {
+        setSavedConfirmTemplates(prev => {
+          const existIds = new Set(prev.map(t => t.id));
+          const newOnes = data.savedConfirmTemplates.filter(t => !existIds.has(t.id));
+          return [...prev, ...newOnes];
+        });
+      }
+      if (data.regionFlights) {
+        setRegionFlights(prev => {
+          const merged = { ...prev };
+          for (const [region, flights] of Object.entries(data.regionFlights)) {
+            if (!merged[region]) merged[region] = [];
+            const existIds = new Set(merged[region].map(f => f.id));
+            const newOnes = flights.filter(f => !existIds.has(f.id));
+            merged[region] = [...merged[region], ...newOnes];
+          }
+          return merged;
+        });
+      }
+      if (data.tabData) {
+        const td = data.tabData;
+        if (td.form) setForm(td.form);
+        if (td.selectedNights) setSelectedNights(td.selectedNights);
+        if (td.rooms) setRooms(td.rooms);
+        if (td.hotelNameOnly !== undefined) setHotelNameOnly(td.hotelNameOnly);
+        if (td.priceMode) setPriceMode(td.priceMode);
+        if (td.priceAdult !== undefined) setPriceAdult(td.priceAdult);
+        if (td.priceChild !== undefined) setPriceChild(td.priceChild);
+        if (td.noAirfare !== undefined) setNoAirfare(td.noAirfare);
+        if (td.selectedCountry) setSelectedCountry(td.selectedCountry);
+        if (td.selectedRegion !== undefined) setSelectedRegion(td.selectedRegion);
+        if (td.confirm) setConfirm(td.confirm);
+        if (td.confirmCountry) setConfirmCountry(td.confirmCountry);
+        if (td.confirmRegion !== undefined) setConfirmRegion(td.confirmRegion);
+        if (td.brochure) setBrochure(td.brochure);
+        if (td.invoice) setInvoice(prev => ({ ...prev, ...td.invoice }));
+      }
+      setImportMsg(`불러오기 완료! 템플릿 ${tCount}개, 작업내용 복원됨`);
+      setShowImportArea(false);
+      setImportText("");
+      setTimeout(() => setImportMsg(""), 4000);
+    } catch (err) {
+      setImportMsg("데이터를 읽을 수 없습니다. 복사한 내용을 다시 확인해주세요.");
+      setTimeout(() => setImportMsg(""), 4000);
+    }
+  };
+
+  const updateBrochure = (field, value) => setBrochure((p) => ({ ...p, [field]: value }));
+
+  const handleImageUpload = (field, index, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (field === "heroImg" || field === "logoImg") {
+        updateBrochure(field, ev.target.result);
+      } else {
+        const arr = [...brochure.subImgs];
+        arr[index] = ev.target.result;
+        updateBrochure("subImgs", arr);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBrochureDownload = async () => {
+    if (!brochureRef.current) return;
+    setDownloading(true);
+    try {
+      const htmlToImage = await loadHtmlToImage();
+      const el = brochureRef.current;
+      const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff" });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `소개서_${brochure.nameKo || "초이스골프"}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) { console.error(e); alert("저장 실패: " + e.message); }
+    setDownloading(false);
+  };
+
+  const handleConfirmDownload = async () => {
+    if (!confirmRef.current) return;
+    setDownloading(true);
+    try {
+      const htmlToImage = await loadHtmlToImage();
+      const el = confirmRef.current;
+      const dataUrl = await htmlToImage.toJpeg(el, {
+        quality: 0.95,
+        pixelRatio: 3,
+        backgroundColor: "#ffffff",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `확정서_${confirm.productName || "초이스골프"}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) { console.error(e); alert("저장 실패: " + e.message); }
+    setDownloading(false);
+  };
+
+  const handleInvoiceDownload = async () => {
+    if (!invoiceRef.current) return;
+    setDownloading(true);
+    try {
+      const htmlToImage = await loadHtmlToImage();
+      const el = invoiceRef.current;
+      const dataUrl = await htmlToImage.toJpeg(el, {
+        quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff",
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `인보이스_${invoice.repName || invoice.productName || "초이스골프"}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) { console.error(e); alert("저장 실패: " + e.message); }
+    setDownloading(false);
+  };
+
+  // === AI 검수 ===
+  const handleReview = async () => {
+    setReviewLoading(true);
+    setReviewResult(null);
+    try {
+      let docType = "";
+      let docData = "";
+      if (mode === "quote") {
+        docType = "견적서";
+        docData = JSON.stringify({
+          상품명: form.productName, 출발일: form.startDate, 박수: selectedNights,
+          성인가: priceAdult, 아동가: priceChild, 항공제외: noAirfare,
+          포함사항: form.included, 불포함: form.excluded,
+          호텔정보: rooms, 일정: form.days.map((d, di) => {
+            let dow = "";
+            if (form.startDate) { const dt = new Date(form.startDate + "T00:00:00"); dt.setDate(dt.getDate() + di); dow = ["일","월","화","수","목","금","토"][dt.getDay()]; }
+            return {
+            일차: d.label, 날짜: d.date, 요일: dow,
+            항목: d.items.map(it => ({ 장소: it.place, 교통: it.transport, 시간: it.time, 내용: it.desc, 골프: it.highlight })),
+            식사: { 조: d.mealB, 중: d.mealL, 석: d.mealD }, 호텔: d.hotel,
+          }; }),
+          리마크: form.remark,
+        }, null, 1);
+      } else if (mode === "confirm") {
+        docType = "확정서";
+        docData = JSON.stringify({
+          상품명: confirm.productName, 출발일: confirm.startDate, 박수: confirm.nights,
+          인원: confirm.people, 호텔: confirm.hotelInfo, 항공사: confirm.airline, 담당자: confirm.contactName,
+          항공편: confirm.flights,
+          포함사항: confirm.included, 불포함: confirm.excluded,
+          일정: confirm.days.map((d, di) => {
+            let dow = "";
+            if (confirm.startDate) { const dt = new Date(confirm.startDate + "T00:00:00"); dt.setDate(dt.getDate() + di); dow = ["일","월","화","수","목","금","토"][dt.getDay()]; }
+            return {
+            일차: d.label, 날짜: d.date, 요일: dow,
+            항목: d.items.map(it => ({ 장소: it.place, 교통: it.transport, 시간: it.time, 내용: it.desc, 골프: it.highlight })),
+            식사: { 조: d.mealB, 중: d.mealL, 석: d.mealD }, 호텔: d.hotel,
+          }; }),
+          리마크: confirm.remark, 피켓미팅: confirm.picketName,
+          가이드: confirm.hasGuide ? `${confirm.guideName} ${confirm.guidePhone}` : "없음",
+        }, null, 1);
+      } else if (mode === "invoice") {
+        docType = "인보이스";
+        const isPerson = invoice.invMode === "person";
+        docData = JSON.stringify({
+          모드: isPerson ? "고객별" : "항목별",
+          상품명: invoice.productName, 출발일: invoice.departureDate, 박수: invoice.nights,
+          인원: invoice.totalPersons, 고객명: invoice.repName,
+          ...(isPerson ? { 고객목록: invoice.customers } : { 요금항목: invoice.items, 기입금: invoice.payments }),
+          기한: invoice.dueDate, 안내문구: invoice.dueMsg,
+        }, null, 1);
+      } else return;
+
+      const systemPrompt = `당신은 한국 골프여행사의 문서 검수 시스템입니다. 아래 ${docType} 데이터를 검수합니다.
+
+[중요 원칙]
+- 객관적으로 틀린 것만 지적하세요. 추측, 제안, 개선점은 절대 적지 마세요.
+- "~하면 좋겠다", "~를 추가하면", "~를 권장" 같은 제안은 금지입니다.
+- 비어있는 필드는 아직 미입력 상태이므로 오류가 아닙니다. 빈 칸을 지적하지 마세요.
+- 확실한 팩트 오류만 보고하세요.
+- 날짜↔요일 검증 시: 데이터의 "요일" 필드는 시스템이 정확히 계산한 값입니다. 일정표의 요일 표기가 이 값과 일치하는지만 확인하세요. 직접 요일을 계산하지 마세요.
+
+[검수 기준 - 아래 항목을 반드시 모두 검사]
+1. 날짜↔요일 불일치: 예) 3/27이 금요일인데 "토"로 표기된 경우
+2. 박수↔일정 수 불일치: 예) 5박6일인데 일정이 5일만 있는 경우  
+3. 시간 역순: 예) 같은 날 출발 13:00 → 도착 11:00
+4. 항공편명↔시간 불일치: 일정표와 항공정보에서 같은 편명의 시간이 다른 경우
+5. 금액 계산 오류: 합계가 맞지 않는 경우
+6. 동일 정보 불일치: 같은 문서 내에서 상품명/인원/호텔명이 서로 다르게 기재된 경우
+7. 포함사항↔일정표 식사 교차검증 (매우 중요!):
+   - 포함사항에 "조식 N회"가 있으면, 일정표에서 조식이 "호텔식" 등으로 표기된 날이 정확히 N회인지 확인
+   - 포함사항에 "석식 N회"가 있으면, 일정표에서 석식이 "불포함"이 아닌 날이 정확히 N회인지 확인
+   - 포함사항에 "중식 N회"가 있으면, 일정표에서 중식이 "불포함"이 아닌 날이 정확히 N회인지 확인
+   - 포함사항에 "조식", "석식", "중식"이 언급되었는데 일정표 식사란에 전부 "불포함"이면 반드시 오류로 지적
+   - 반대로 포함사항에 식사 언급이 없는데 일정표에 식사가 포함되어 있으면 오류로 지적
+8. 포함사항↔일정표 내용 교차검증:
+   - 포함사항에 "송영" 포함이라고 했는데 일정에 송영 관련 내용이 없으면 지적
+   - 포함사항에 "골프 N회"가 있으면 일정에서 골프 라운딩 횟수가 N회인지 확인
+
+[응답 형식]
+- 오류가 없으면 반드시 "✅ 검수 완료: 이상 없습니다" 한 줄만 출력
+- 오류가 있으면 각각 "🔴 [항목] 구체적 내용" 형식으로 출력
+- 절대 5개를 초과하지 마세요`;
+
+      if (!apiKey) { setReviewResult("⚠️ API 키가 설정되지 않았습니다. 상단 ⚙️설정에서 Anthropic API 키를 입력하세요."); setReviewLoading(false); return; }
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({
+          model: "claude-opus-4-6",
+          max_tokens: 1000,
+          temperature: 0,
+          system: systemPrompt,
+          messages: [{ role: "user", content: `다음 ${docType} 데이터를 검수해주세요:\n\n${docData}` }],
+        }),
+      });
+      const data = await resp.json();
+      const text = data.content?.map(c => c.text || "").join("\n") || "검수 결과를 받지 못했습니다.";
+      setReviewResult(text);
+    } catch (err) {
+      setReviewResult("❌ 검수 중 오류가 발생했습니다: " + err.message);
+    }
+    setReviewLoading(false);
+  };
+
+  const handleDownload = async () => {
+    if (!previewRef.current) return;
+    setDownloading(true);
+    try {
+      const htmlToImage = await loadHtmlToImage();
+      const el = previewRef.current;
+      const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff" });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `견적서_${form.productName || "초이스골프"}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) { console.error(e); alert("저장 실패: " + e.message); }
+    setDownloading(false);
+  };
+
+  const handleExcelDownload = async () => {
+    setDownloading(true);
+    try {
+      const XLSX = await loadXLSX();
+      const wb = XLSX.utils.book_new();
+
+      // --- Sheet 1: 견적서 ---
+      const rows = [];
+      rows.push(["CHOICE GOLF 해외골프투어 견적서"]);
+      rows.push([]);
+      rows.push(["상품명", form.productName]);
+      rows.push(["담당자", contact]);
+      rows.push(["기간", getDateStr()]);
+      rows.push(["인원", person]);
+      rows.push(["호텔", buildHotelDisplay(hotelNameOnly, rooms)]);
+      rows.push(["항공", form.airline]);
+      rows.push([]);
+      if (priceMode === "single") {
+        rows.push(["요금 (원/인)", form.price + (noAirfare ? " (항공불포함)" : "")]);
+      } else {
+        rows.push(["성인 요금 (원/인)", priceAdult + (noAirfare ? " (항공불포함)" : "")]);
+        rows.push(["아동 요금 (원/인)", priceChild + (noAirfare ? " (항공불포함)" : "")]);
+      }
+      rows.push([]);
+      rows.push(["[포함사항]"]);
+      form.included.forEach(item => rows.push(["", item.replace(/\[.*?\]/g, "")]));
+      rows.push([]);
+      rows.push(["[불포함]"]);
+      form.excluded.forEach(item => rows.push(["", item.replace(/\[.*?\]/g, "")]));
+      rows.push([]);
+      rows.push(["[REMARK]"]);
+      form.remark.split("\n").forEach(line => rows.push(["", line.replace(/\[.*?\]/g, "")]));
+      rows.push([]);
+      rows.push(["[입금 계좌]"]);
+      BANK_INFO.split("\n").forEach(line => rows.push(["", line]));
+
+      const ws1 = XLSX.utils.aoa_to_sheet(rows);
+      ws1["!cols"] = [{ wch: 18 }, { wch: 60 }];
+      // Merge title
+      ws1["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 1 } }];
+      XLSX.utils.book_append_sheet(wb, ws1, "견적서");
+
+      // --- Sheet 2: 일정표 ---
+      const itRows = [];
+      itRows.push(["일차", "날짜", "장소", "교통", "시간", "일정", "골프", "호텔", "조식", "중식", "석식"]);
+      form.days.forEach(day => {
+        day.items.forEach((item, ii) => {
+          const row = [];
+          row.push(ii === 0 ? day.label : "");
+          row.push(ii === 0 ? (day.dow || "") : "");
+          row.push(item.place || "");
+          row.push(item.transport || "");
+          row.push(item.time || "");
+          row.push((item.desc || "").replace(/\[.*?\]/g, ""));
+          row.push(item.highlight ? "●" : "");
+          row.push(ii === 0 ? (day.hotelName || "") : "");
+          row.push(ii === 0 ? (day.mealB || "") : "");
+          row.push(ii === 0 ? (day.mealL || "") : "");
+          row.push(ii === 0 ? (day.mealD || "") : "");
+          itRows.push(row);
+        });
+      });
+      const ws2 = XLSX.utils.aoa_to_sheet(itRows);
+      ws2["!cols"] = [{ wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 8 }, { wch: 40 }, { wch: 6 }, { wch: 30 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(wb, ws2, "일정표");
+
+      const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      const blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `견적서_${form.productName || "초이스골프"}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("엑셀 저장에 실패했습니다.");
+    }
+    setDownloading(false);
+  };
+
+  const loadTemplate = (key) => {
+    const t = TEMPLATES[key];
+    const sDate = t._startDate || "";
+    const adjustedDays = applyDates(sDate, t.nights, t.days);
+    setForm({ ...t, days: adjustedDays });
+    setSelectedNights(t.nights);
+    setStartDate(sDate);
+    if (t._person) setPerson(t._person);
+    const h = t._hotelNameOnly || t.hotel || "";
+    const dashIdx = h.indexOf(" -(");
+    setHotelNameOnly(t._hotelNameOnly || (dashIdx > 0 ? h.substring(0, dashIdx).trim() : h.replace(/\s*-?\(.*\).*$/, "").trim()));
+    setRooms(t._rooms || [{ type: "2in1", count: 0 }]);
+    setPriceMode(t._priceMode || "single");
+    setPriceAdult(t._priceAdult || "");
+    setPriceChild(t._priceChild || "");
+    setNoAirfare(t._noAirfare || false);
+    setSelectedRegion("");
+  };
+
+  const updateField = (field, value) => setForm((p) => ({ ...p, [field]: value }));
+
+  // Build room display string
+  const buildRoomStr = (roomList) => {
+    if (!roomList || roomList.length === 0) return "";
+    const active = roomList.filter(r => r.count > 0);
+    if (active.length === 0) return "";
+    return active.map(r => {
+      const rt = ROOM_TYPES.find(t => t.id === r.type);
+      const label = rt ? rt.short : r.type;
+      return r.count === 1 ? label : `${label}×${r.count}`;
+    }).join(" / ");
+  };
+
+  // Build full hotel display for info grid
+  const buildHotelDisplay = (name, roomList) => {
+    if (!name) return "";
+    const roomStr = buildRoomStr(roomList);
+    return roomStr ? `${name} -(${roomStr} 기준)` : `${name}`;
+  };
+
+  // Build hotel name for itinerary days
+  const buildDayHotelName = (name, roomList) => {
+    if (!name) return "";
+    const roomStr = buildRoomStr(roomList);
+    return roomStr ? `${name}(${roomStr})` : name;
+  };
+
+  // Apply hotel to all days (except last day)
+  const applyHotelToAllDays = () => {
+    const dayHotel = buildDayHotelName(hotelNameOnly, rooms);
+    setForm(prev => ({
+      ...prev,
+      hotel: buildHotelDisplay(hotelNameOnly, rooms),
+      days: prev.days.map((day, i) => ({
+        ...day,
+        hotelName: i < prev.days.length - 1 ? dayHotel : "",
+      })),
+    }));
+  };
+
+  // Add room row
+  const addRoom = () => setRooms(prev => [...prev, { type: "2in1", count: 0 }]);
+  const removeRoom = (idx) => setRooms(prev => prev.filter((_, i) => i !== idx));
+  const updateRoom = (idx, field, value) => setRooms(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+
+  const updateIncluded = (idx, val) => {
+    const arr = [...form.included];
+    arr[idx] = val;
+    setForm((p) => ({ ...p, included: arr }));
+  };
+  const addIncluded = () => setForm((p) => ({ ...p, included: [...p.included, ""] }));
+  const removeIncluded = (idx) => setForm((p) => ({ ...p, included: p.included.filter((_, i) => i !== idx) }));
+
+  const updateExcluded = (idx, val) => {
+    const arr = [...form.excluded];
+    arr[idx] = val;
+    setForm((p) => ({ ...p, excluded: arr }));
+  };
+  const addExcluded = () => setForm((p) => ({ ...p, excluded: [...p.excluded, ""] }));
+  const removeExcluded = (idx) => setForm((p) => ({ ...p, excluded: p.excluded.filter((_, i) => i !== idx) }));
+
+  // === Drag & Drop Reorder ===
+  const dragRef = useRef({ type: null, from: -1, dayIdx: -1 });
+  const [dragOver, setDragOver] = useState({ type: null, idx: -1, dayIdx: -1 });
+
+  const reorder = (arr, from, to) => {
+    const next = [...arr];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    return next;
+  };
+
+  const onDragStart = (type, idx, dayIdx = -1) => (e) => {
+    e.stopPropagation();
+    dragRef.current = { type, from: idx, dayIdx };
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const onDragOver = (type, idx, dayIdx = -1) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    if (dragRef.current.type === type && dragRef.current.dayIdx === dayIdx) {
+      setDragOver({ type, idx, dayIdx });
+    }
+  };
+  const onDragEnd = (e) => { e.stopPropagation(); setDragOver({ type: null, idx: -1, dayIdx: -1 }); };
+  const onDrop = (type, toIdx, dayIdx = -1) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const d = dragRef.current;
+    if (d.type !== type || d.dayIdx !== dayIdx || d.from === toIdx) { setDragOver({ type: null, idx: -1, dayIdx: -1 }); return; }
+    if (type === "included") setForm(p => ({ ...p, included: reorder(p.included, d.from, toIdx) }));
+    else if (type === "excluded") setForm(p => ({ ...p, excluded: reorder(p.excluded, d.from, toIdx) }));
+    else if (type === "dayItem") setForm(p => {
+      const days = [...p.days];
+      days[dayIdx] = { ...days[dayIdx], items: reorder(days[dayIdx].items, d.from, toIdx) };
+      return { ...p, days };
+    });
+    else if (type === "day") setForm(p => {
+      const reordered = reorder(p.days, d.from, toIdx);
+      return { ...p, days: reordered.map((day, i) => ({ ...day, label: `${i + 1}일차` })) };
+    });
+    else if (type === "cfDayItem") setConfirm(p => {
+      const days = [...p.days];
+      days[dayIdx] = { ...days[dayIdx], items: reorder(days[dayIdx].items, d.from, toIdx) };
+      return { ...p, days };
+    });
+    setDragOver({ type: null, idx: -1, dayIdx: -1 });
+  };
+  const dragHandleStyle = { cursor: "grab", fontSize: "14px", color: "#bbb", userSelect: "none", padding: "0 2px", display: "flex", alignItems: "center" };
+  const dropHighlight = (type, idx, dayIdx = -1) => (dragOver.type === type && dragOver.idx === idx && dragOver.dayIdx === dayIdx) ? { borderTop: "2px solid #2d6a4f" } : {};
+
+  const updateDay = (dayIdx, field, value) => {
+    const days = [...form.days];
+    days[dayIdx] = { ...days[dayIdx], [field]: value };
+    setForm((p) => ({ ...p, days }));
+  };
+  const updateDayItem = (dayIdx, itemIdx, field, value) => {
+    const days = [...form.days];
+    const items = [...days[dayIdx].items];
+    items[itemIdx] = { ...items[itemIdx], [field]: value };
+    days[dayIdx] = { ...days[dayIdx], items };
+    setForm((p) => ({ ...p, days }));
+  };
+  const addDayItem = (dayIdx) => {
+    const days = [...form.days];
+    days[dayIdx] = { ...days[dayIdx], items: [...days[dayIdx].items, { place: "", transport: "", time: "", desc: "" }] };
+    setForm((p) => ({ ...p, days }));
+  };
+  const removeDayItem = (dayIdx, itemIdx) => {
+    const days = [...form.days];
+    days[dayIdx] = { ...days[dayIdx], items: days[dayIdx].items.filter((_, i) => i !== itemIdx) };
+    setForm((p) => ({ ...p, days }));
+  };
+  const addDay = () => {
+    const newDay = {
+      label: `${form.days.length + 1}일차`,
+      dow: "",
+      items: [{ place: "", transport: "", time: "", desc: "" }],
+      hotelName: "",
+      mealB: "", mealL: "", mealD: "",
+    };
+    setForm((p) => ({ ...p, days: [...p.days, newDay] }));
+  };
+  const removeDay = (idx) => setForm((p) => ({ ...p, days: p.days.filter((_, i) => i !== idx) }));
+
+  const cellStyle = (bg, color, opts = {}) => ({
+    backgroundColor: bg,
+    color: color,
+    padding: "8px 12px",
+    fontSize: opts.size || "13px",
+    fontWeight: opts.bold !== false ? "700" : "400",
+    border: `1px solid ${COLORS.border}`,
+    verticalAlign: "middle",
+    lineHeight: "1.6",
+    ...opts,
+  });
+
+  const headerCell = (opts = {}) => cellStyle(COLORS.primary, "#fff", { textAlign: "center", whiteSpace: "nowrap", fontSize: "12px", letterSpacing: "1px", ...opts });
+  const contentCell = (opts = {}) => cellStyle("#fff", "#333", opts);
+
+  const renderCompanyHeader = () => (
+    <div style={{ padding: compact ? "10px 24px 8px" : "18px 30px 16px", borderBottom: `3px solid ${COLORS.accent}`, width: "100%", boxSizing: "border-box" }}>
+      <div style={{ display: "table", width: "100%" }}>
+        <div style={{ display: "table-cell", verticalAlign: "middle" }}>
+          <div style={{ display: "inline-block", verticalAlign: "middle" }}>
+            <img src={LOGO_SRC} alt="" style={{ height: "36px", verticalAlign: "middle" }} />
+          </div>
+          <div style={{ display: "inline-block", verticalAlign: "middle", paddingLeft: "10px", textAlign: "center" }}>
+            <div style={{ fontSize: "18px", fontWeight: "900", color: "#2d5a3f", letterSpacing: "2px" }}>(주)초이스골프</div>
+            <div style={{ fontSize: "9px", color: "#8faa8f", letterSpacing: "4px", marginTop: "2px" }}>CHOICE GOLF</div>
+          </div>
+        </div>
+        <div style={{ display: "table-cell", verticalAlign: "middle", textAlign: "right" }}>
+          <div style={{ fontSize: "15px", color: "#2d5a3f", fontWeight: "800", letterSpacing: "0.5px" }}>프리미엄 골프여행 • 레저&회원권 전문</div>
+          <div style={{ fontSize: "11px", color: "#999", marginTop: "5px" }}>차별화된 여행 • 프리미엄 컨시어지 서비스</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPreview = () => {
+    const sectionTitle = (text) => ({
+      fontSize: "11px", fontWeight: "700", color: COLORS.accent, letterSpacing: "3px",
+      padding: compact ? "2px 0 1px" : "4px 0 3px", borderBottom: `2px solid ${COLORS.accent}`, marginBottom: "0",
+    });
+    const infoLabel = { fontSize: "11px", color: "#555", fontWeight: "400", letterSpacing: "1px" };
+    const infoValue = { fontSize: "13px", color: "#111", fontWeight: "400" };
+
+
+    return (
+    <div ref={previewRef} data-preview="true" style={{ background: "#fff", width: "780px", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", margin: "0 auto", boxSizing: "border-box" }}>
+      {renderCompanyHeader()}
+      {/* Product Name + Doc Info */}
+      {/* Product Name */}
+      <div style={{ padding: cPadTitle }}>
+        <div style={{ fontSize: "16px", fontWeight: "800", color: COLORS.accent }}>{form.productName}</div>
+      </div>
+
+      {/* Info Grid */}
+      <div style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+        {/* Row 1: 요금 / 담당 */}
+        <div style={{ display: "table", width: "100%", padding: cInfoPad }}>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>요금</div>
+            {priceMode === "single" ? (
+              <div style={{ marginTop: "2px" }}>
+                <span style={{ fontSize: "18px", fontWeight: "900", color: COLORS.priceTxt }}>₩ {form.price}</span>
+                <span style={{ fontSize: "11px", color: COLORS.priceTxt }}> 원/인</span>
+                {noAirfare && <span style={{ fontSize: "10px", color: "#fff", background: "#888", padding: "2px 6px", borderRadius: "3px", fontWeight: "700", marginLeft: "6px", verticalAlign: "middle" }}>항공불포함</span>}
+              </div>
+            ) : (
+              <div style={{ marginTop: "2px" }}>
+                <div>
+                  <span style={{ fontSize: "10px", color: "#555", marginRight: "4px" }}>성인</span>
+                  <span style={{ fontSize: "18px", fontWeight: "900", color: COLORS.priceTxt }}>₩ {priceAdult}</span>
+                  <span style={{ fontSize: "11px", color: COLORS.priceTxt }}> 원/인</span>
+                  {noAirfare && <span style={{ fontSize: "10px", color: "#fff", background: "#888", padding: "2px 6px", borderRadius: "3px", fontWeight: "700", marginLeft: "6px", verticalAlign: "middle" }}>항공불포함</span>}
+                </div>
+                <div style={{ marginTop: "2px" }}>
+                  <span style={{ fontSize: "10px", color: "#555", marginRight: "4px" }}>아동</span>
+                  <span style={{ fontSize: "15px", fontWeight: "800", color: "#e67e22" }}>₩ {priceChild}</span>
+                  <span style={{ fontSize: "11px", color: "#e67e22" }}> 원/인</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px", verticalAlign: "top" }}>
+            <div style={infoLabel}>담당</div>
+            <div style={{ ...infoValue, marginTop: "2px" }}>{contact}</div>
+          </div>
+        </div>
+        {/* Row 2: 기간 / 인원 */}
+        <div style={{ display: "table", width: "100%", padding: cInfoPad }}>
+          {[
+            { label: "기간", value: getDateStr() },
+            { label: "인원", value: person },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+              <div style={infoLabel}>{item.label}</div>
+              <div style={{ ...infoValue, marginTop: "2px" }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+        {/* Row 3: 호텔 / 항공 */}
+        <div style={{ display: "table", width: "100%", padding: cInfoPadLast }}>
+          {[
+            { label: "호텔", value: buildHotelDisplay(hotelNameOnly, rooms) },
+            { label: "항공", value: form.airline, color: COLORS.airlineTxt },
+          ].map((item, i) => (
+            <div key={i} style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+              <div style={infoLabel}>{item.label}</div>
+              <div style={{ ...infoValue, color: item.color || "#1a1a1a", marginTop: "2px" }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Included / Excluded */}
+      <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: "table", width: "100%" }}>
+        <div style={{ display: "table-cell", width: "66%", verticalAlign: "top" }}>
+          <div style={sectionTitle()}>포함사항</div>
+          <div style={{ padding: cSecPad }}>
+            {form.included.map((item, i) => (
+              <div key={i} style={{ fontSize: "13px", color: item.includes("서비스") || item.includes("특전") ? COLORS.priceTxt : "#111", padding: compact ? "0" : "1px 0", lineHeight: cLineH, fontWeight: item.includes("서비스") || item.includes("특전") ? "700" : "400" }}>
+                • {parseColorText(item)}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "table-cell", width: "34%", verticalAlign: "top", paddingLeft: "24px" }}>
+          <div style={sectionTitle()}>불포함</div>
+          <div style={{ padding: cSecPad }}>
+            {form.excluded.map((item, i) => (
+              <div key={i} style={{ fontSize: "13px", color: "#111", padding: compact ? "0" : "1px 0", lineHeight: cLineH }}>• {parseColorText(item)}</div>
+            ))}
+          </div>
+        </div>
+        </div>
+      </div>
+
+      {/* Remark */}
+      <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={sectionTitle()}>REMARK</div>
+        <div style={{ padding: cRemarkPad }}>
+          {form.remark.split("\n").map((line, i) => (
+            <div key={i} style={{ fontSize: "13px", color: COLORS.remarkTxt, padding: compact ? "1px 0" : "2px 0", lineHeight: cLineHR }}>• {parseColorText(line)}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bank */}
+      <div style={{ padding: cPad, background: COLORS.bankBg, borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={{ fontSize: "11px", color: "#555", fontWeight: "700", marginBottom: "2px" }}>입금 계좌</div>
+        <div style={{ fontSize: "13px", color: "#111", whiteSpace: "pre-line", lineHeight: compact ? "1.3" : "1.6" }}>{BANK_INFO}</div>
+      </div>
+
+      {/* Itinerary */}
+      <div style={{ padding: cPadLg }}>
+        <div style={{ ...sectionTitle(), marginBottom: "0" }}>일정표</div>
+        {/* Column labels */}
+        <div style={{ display: "table", width: "100%", borderBottom: `1px solid ${COLORS.border}`, padding: cRemarkPad }}>
+          <div style={{ display: "table-cell", width: "70px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px", verticalAlign: "middle" }}>날짜</div>
+          <div style={{ display: "table-cell", verticalAlign: "middle", paddingLeft: "16px" }}>
+            <div style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+              <div style={{ display: "table-cell", width: "55px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>장소</div>
+              <div style={{ display: "table-cell", width: "55px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>교통</div>
+              <div style={{ display: "table-cell", width: "16px" }}></div>
+              <div style={{ display: "table-cell", width: "50px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>시간</div>
+              <div style={{ display: "table-cell", paddingLeft: "8px", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>일정</div>
+            </div>
+          </div>
+          <div style={{ display: "table-cell", width: "65px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px", verticalAlign: "middle" }}>식사</div>
+        </div>
+        {form.days.map((day, di) => (
+          <div key={di} style={{ marginBottom: "0", borderBottom: `1px solid ${COLORS.border}` }}>
+            {/* Day content row */}
+            <div style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+              {/* Left: Day label */}
+              <div style={{ width: "70px", textAlign: "center", verticalAlign: "middle", padding: cDayPad, borderRight: `1px solid ${COLORS.border}`, display: "table-cell" }}>
+                <div style={{ display: "inline-block", background: COLORS.accent, color: "#fff", padding: "4px 12px", borderRadius: "3px", fontSize: "12px", fontWeight: "800", whiteSpace: "nowrap" }}>
+                  {day.label}
+                </div>
+                {day.dow && <div style={{ fontSize: "11px", color: COLORS.labelColor, marginTop: "4px" }}>{day.dow}</div>}
+              </div>
+              {/* Center: Items */}
+              <div style={{ display: "table-cell", verticalAlign: "top", padding: cCellPad }}>
+                {day.items.map((item, ii) => (
+                  <div key={ii} style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+                    <div style={{ display: "table-cell", width: "55px", fontSize: "10px", color: COLORS.accent, fontWeight: "700", textAlign: "center", verticalAlign: "middle", padding: cItemPad, whiteSpace: "nowrap" }}>{item.place}</div>
+                    <div style={{ display: "table-cell", width: "55px", fontSize: "12px", color: COLORS.labelColor, textAlign: "center", verticalAlign: "middle", padding: cItemPad }}>{item.transport}</div>
+                    <div style={{ display: "table-cell", width: "16px", verticalAlign: "middle" }}><div style={{ width: "1px", height: "14px", background: COLORS.border, margin: "0 auto" }} /></div>
+                    <div style={{ display: "table-cell", width: "50px", fontSize: "12px", color: "#111", fontWeight: "400", textAlign: "center", verticalAlign: "middle", padding: cItemPad }}>{item.time}</div>
+                    <div style={{ display: "table-cell", fontSize: "12px", color: item.highlight ? COLORS.highlightTxt : "#111", fontWeight: item.highlight ? "700" : "400", paddingLeft: "8px", verticalAlign: "middle", padding: compact ? "1px 0 1px 8px" : "3px 0 3px 8px" }}>
+                      {parseColorText(item.desc)}
+                    </div>
+                  </div>
+                ))}
+                {/* Hotel */}
+                {day.hotelName && (
+                  <div style={{ padding: cHotelPad, marginTop: "2px", borderTop: `1px dashed ${COLORS.border}` }}>
+                    <span style={{ display: "inline-block", fontSize: "10px", color: "#fff", background: COLORS.gold, padding: "2px 8px", borderRadius: "2px", fontWeight: "700", letterSpacing: "1px", verticalAlign: "middle" }}>HOTEL</span>
+                    <span style={{ fontSize: "12px", color: "#111", fontWeight: "400", paddingLeft: "8px", verticalAlign: "middle" }}>{day.hotelName}</span>
+                  </div>
+                )}
+              </div>
+              {/* Right: Meals vertical */}
+              <div style={{ width: "65px", display: "table-cell", verticalAlign: "middle", textAlign: "center", padding: "6px 2px", borderLeft: `1px solid ${COLORS.border}`, fontSize: "11px", color: "#111", lineHeight: cLineHR }}>
+                {[day.mealB && `조: ${day.mealB}`, day.mealL && `중: ${day.mealL}`, day.mealD && `석: ${day.mealD}`].filter(Boolean).map((m, mi) => <div key={mi} style={{ whiteSpace: "nowrap" }}>{m}</div>)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{ borderTop: `2px solid ${COLORS.accent}`, padding: cFooterPad, textAlign: "center" }}>
+        <div style={{ color: "#333", fontSize: "10px", letterSpacing: "2px" }}>
+          (주)초이스골프 | TEL: 1533-3160 | www.chctour.com
+        </div>
+      </div>
+    </div>
+    );
+  };
+
+  const currentGroup = TEMPLATE_GROUPS.find(g => g.country === selectedCountry);
+  const builtinTemplates = currentGroup ? Object.entries(currentGroup.templates) : [];
+  const countrySavedTemplates = savedTemplates.filter(t => t.country === selectedCountry);
+  const countryRegions = [...new Set(countrySavedTemplates.map(t => t.region).filter(Boolean))].sort();
+
+  const renderForm = () => (
+    <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+      {/* Country Tabs */}
+      <div style={{ marginBottom: "12px" }}>
+        <label style={labelStyle}>국가 선택</label>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+          {TEMPLATE_GROUPS.filter(g => g.country !== "새로 만들기").map((g) => (
+            <button key={g.country} onClick={() => setSelectedCountry(g.country)} style={{
+              padding: "8px 16px", borderRadius: "6px", border: `1px solid ${selectedCountry === g.country ? COLORS.accent : "#ddd"}`,
+              background: selectedCountry === g.country ? COLORS.accent : "#fff",
+              color: selectedCountry === g.country ? "#fff" : "#555",
+              cursor: "pointer", fontSize: "13px", fontWeight: "700",
+            }}>
+              {g.flag} {g.country}
+            </button>
+          ))}
+        </div>
+        {/* Built-in Templates */}
+        {builtinTemplates.length > 0 && (
+          <div style={{ marginBottom: "10px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#888", marginBottom: "5px" }}>📦 기본 템플릿</div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginLeft: "12px" }}>
+              {builtinTemplates.map(([key, tpl]) => (
+                <button key={key} onClick={() => { loadTemplate(key); setActiveTemplateId(null); }} style={{
+                  padding: "8px 16px", borderRadius: "6px", border: `1px solid ${COLORS.accent}`,
+                  background: form.productName === tpl.productName ? COLORS.accentLight : "#fff",
+                  color: form.productName === tpl.productName ? COLORS.accent : "#555",
+                  cursor: "pointer", fontSize: "12px", fontWeight: "600",
+                }}>
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Region > Product Templates */}
+        {countryRegions.length > 0 ? (
+          countryRegions.map(region => {
+            const regionTemplates = countrySavedTemplates.filter(t => t.region === region);
+            const flightCount = (regionFlights[region] || []).length;
+            return (
+              <div key={region} style={{ marginBottom: "10px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#888", marginBottom: "5px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  📍 {region}
+                  {flightCount > 0 && <span style={{ fontSize: "9px", background: "#e3f2fd", color: "#1565c0", padding: "1px 6px", borderRadius: "8px" }}>✈ {flightCount}</span>}
+                </div>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginLeft: "12px" }}>
+                  {regionTemplates.map((t) => (
+                    <div key={t.id} style={{ display: "flex", alignItems: "stretch", borderRadius: "6px", overflow: "hidden", border: `${activeTemplateId === t.id ? "2px" : "1px"} solid ${activeTemplateId === t.id ? COLORS.accent : "#ccc"}` }}>
+                      <button onClick={() => loadSavedTemplate(t)} style={{
+                        padding: "8px 16px", border: "none", cursor: "pointer",
+                        background: activeTemplateId === t.id ? COLORS.accentLight : "#fff",
+                        color: activeTemplateId === t.id ? COLORS.accent : "#333",
+                        fontSize: "12px", fontWeight: "600",
+                      }}>
+                        {t.name}
+                      </button>
+                      <button onClick={() => deleteSavedTemplate(t.id)} style={{
+                        border: "none", cursor: "pointer",
+                        padding: confirmDeleteTplId === t.id ? "0 12px" : "0 8px",
+                        fontSize: confirmDeleteTplId === t.id ? "10px" : "12px",
+                        fontWeight: confirmDeleteTplId === t.id ? "700" : "400",
+                        background: confirmDeleteTplId === t.id ? "#e74c3c" : "#fee",
+                        color: confirmDeleteTplId === t.id ? "#fff" : "#c0392b",
+                        borderLeft: `1px solid ${COLORS.border}`,
+                        transition: "all 0.2s",
+                      }}>{confirmDeleteTplId === t.id ? "삭제?" : "×"}</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ padding: "8px 12px", background: "#f9f9f9", borderRadius: "6px", color: "#999", fontSize: "12px", marginBottom: "10px" }}>
+            등록된 상품이 없습니다. "새로 만들기"로 작성 후 저장하세요.
+          </div>
+        )}
+        {/* New empty template */}
+        <div style={{ marginBottom: "10px" }}>
+          <button onClick={() => { loadTemplate("empty"); setIsNewSheet(true); setActiveTemplateId(null); setTimeout(() => setIsNewSheet(false), 2000); }} style={{
+            padding: "8px 16px", borderRadius: "6px", border: `1px dashed ${isNewSheet ? COLORS.accent : "#ccc"}`,
+            background: isNewSheet ? COLORS.accentLight : "#fff", color: isNewSheet ? COLORS.accent : "#999",
+            cursor: "pointer", fontSize: "12px", fontWeight: isNewSheet ? "700" : "400",
+            transition: "all 0.3s",
+          }}>
+            {isNewSheet ? "✨ 새 견적서 작성 중..." : "+ 새로 만들기"}
+          </button>
+        </div>
+        {/* Save current as template */}
+        {!showSaveDialog ? (
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={() => { setShowSaveDialog(true); setSaveTemplateCountry(selectedCountry); setSaveTemplateRegion(selectedRegion || ""); setSaveTemplateName(activeTemplateId ? (savedTemplates.find(t => t.id === activeTemplateId)?.name || form.productName || "") : (form.productName || "")); }} style={{
+              background: "none", border: `1px dashed ${COLORS.accent}`, borderRadius: "6px",
+              padding: "6px 14px", fontSize: "11px", color: COLORS.accent, cursor: "pointer",
+            }}>
+              {activeTemplateId ? "💾 현재 템플릿 수정 저장" : "💾 새 템플릿으로 저장"}
+            </button>
+            {savedTemplates.length > 0 && (
+              <span style={{ fontSize: "10px", color: "#aaa" }}>저장된 템플릿: {savedTemplates.length}개</span>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: "#f8faf8", borderRadius: "8px", padding: "12px", border: `1px solid ${COLORS.border}`, display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div style={{ width: "120px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>국가</label>
+              <select style={inputStyle} value={saveTemplateCountry} onChange={(e) => setSaveTemplateCountry(e.target.value)}>
+                {TEMPLATE_GROUPS.filter(g => g.country !== "새로 만들기").map(g => (
+                  <option key={g.country} value={g.country}>{g.flag} {g.country}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ width: "140px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>지역 (항공편 공유 단위)</label>
+              <input style={inputStyle} value={saveTemplateRegion} onChange={(e) => setSaveTemplateRegion(e.target.value)} placeholder="미야코지마" list="region-list" />
+              <datalist id="region-list">
+                {[...new Set(savedTemplates.map(t => t.region).filter(Boolean))].map(r => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
+            <div style={{ flex: 1, minWidth: "150px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>상품명</label>
+              <input style={inputStyle} value={saveTemplateName} onChange={(e) => setSaveTemplateName(e.target.value)} placeholder="미야코지마 4박5일 VIP" />
+            </div>
+            <button onClick={saveCurrentAsTemplate} style={{
+              background: COLORS.accent, color: "#fff", border: "none", borderRadius: "6px",
+              padding: "8px 20px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+            }}>{activeTemplateId ? "수정 저장" : "새로 저장"}</button>
+            <button onClick={() => setShowSaveDialog(false)} style={{
+              background: "#eee", color: "#666", border: "none", borderRadius: "6px",
+              padding: "8px 14px", fontSize: "12px", cursor: "pointer",
+            }}>취소</button>
+          </div>
+        )}
+      </div>
+
+      {/* Basic Info */}
+      {/* New Sheet Banner */}
+      {isNewSheet && (
+        <div style={{ margin: "0 0 12px", padding: "12px 16px", background: "linear-gradient(135deg, #e8f5e9, #c8e6c9)", borderRadius: "8px", border: `2px solid ${COLORS.accent}`, display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "20px" }}>📋</span>
+          <div>
+            <div style={{ fontSize: "13px", fontWeight: "800", color: COLORS.primary }}>새 견적서 작성 모드</div>
+            <div style={{ fontSize: "11px", color: "#666" }}>빈 양식이 로드되었습니다. 내용을 입력한 뒤 "템플릿으로 저장" 해주세요.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Basic Info */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>기본 정보</legend>
+        <div style={gridStyle}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>상품명</label>
+            <input style={inputStyle} value={form.productName} onChange={(e) => updateField("productName", e.target.value)} placeholder="[일본 미야코지마] 브리즈베이 + 3색 명품골프" />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>담당자</label>
+            <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+              {[["최진우 대표 1533-3160 / 010-5897-1053", "최진우"], ["최인영 대표 010-5340-4980", "최인영"]].map(([val, short]) => (
+                <button key={val} onClick={() => setContact(val)} style={{
+                  padding: "3px 10px", fontSize: "10px", borderRadius: "4px", cursor: "pointer",
+                  border: `1px solid ${contact === val ? COLORS.accent : "#ddd"}`,
+                  background: contact === val ? COLORS.accentLight : "#fff",
+                  color: contact === val ? COLORS.accent : "#888",
+                  fontWeight: contact === val ? "700" : "400",
+                }}>{short}</button>
+              ))}
+            </div>
+            <input style={inputStyle} value={contact} onChange={(e) => setContact(e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>출발일</label>
+              <input type="date" style={inputStyle} value={startDate} onChange={(e) => handleStartDateChange(e.target.value)} />
+            </div>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>여행 일수</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={selectedNights} onChange={(e) => handleNightsChange(e.target.value)}>
+                {NIGHTS_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>인원</label>
+            <input style={inputStyle} value={person} onChange={(e) => setPerson(e.target.value)} placeholder="2인 기준" />
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>항공사</label>
+              <input style={inputStyle} value={form.airline} onChange={(e) => updateField("airline", e.target.value)} placeholder="항공편 선택 시 자동입력" />
+            </div>
+            {priceMode === "single" ? (
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>요금 (원/인){noAirfare ? " - 항공불포함" : ""}</label>
+                <input style={{ ...inputStyle, color: COLORS.priceTxt, fontWeight: "700", fontSize: "15px" }} value={form.price} onChange={(e) => updateField("price", e.target.value)} placeholder="2,240,000" />
+              </div>
+            ) : (
+              <>
+                <div style={{ ...fieldStyle, flex: 1 }}>
+                  <label style={labelStyle}>성인 요금{noAirfare ? " - 항공불포함" : ""}</label>
+                  <input style={{ ...inputStyle, color: COLORS.priceTxt, fontWeight: "700", fontSize: "15px" }} value={priceAdult} onChange={(e) => setPriceAdult(e.target.value)} placeholder="2,240,000" />
+                </div>
+                <div style={{ ...fieldStyle, flex: 1 }}>
+                  <label style={labelStyle}>아동 요금{noAirfare ? " - 항공불포함" : ""}</label>
+                  <input style={{ ...inputStyle, color: COLORS.priceTxt, fontWeight: "700", fontSize: "15px" }} value={priceChild} onChange={(e) => setPriceChild(e.target.value)} placeholder="1,800,000" />
+                </div>
+              </>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "4px" }}>
+            {[["single", "단일요금"], ["split", "성인/아동 분리"]].map(([val, label]) => (
+              <button key={val} onClick={() => setPriceMode(val)} style={{
+                padding: "3px 10px", fontSize: "10px", borderRadius: "4px", cursor: "pointer", fontWeight: priceMode === val ? "700" : "400",
+                border: `1px solid ${priceMode === val ? COLORS.accent : "#ddd"}`,
+                background: priceMode === val ? COLORS.accentLight : "#fff",
+                color: priceMode === val ? COLORS.accent : "#888",
+              }}>{label}</button>
+            ))}
+            <label style={{ display: "flex", alignItems: "center", gap: "3px", fontSize: "10px", color: "#888", cursor: "pointer", marginLeft: "auto" }}>
+              <input type="checkbox" checked={noAirfare} onChange={(e) => setNoAirfare(e.target.checked)} />
+              항공권 불포함
+            </label>
+          </div>
+        </div>
+
+        {/* 항공편 선택 (기본정보 안) */}
+        <div style={{ marginTop: "12px", padding: "12px", background: "#f8faf8", borderRadius: "8px", border: `1px solid ${COLORS.border}` }}>
+          <div style={{ fontSize: "12px", fontWeight: "700", color: COLORS.accent, marginBottom: "8px" }}>
+            ✈ 항공편 선택 {selectedRegion && <span style={{ fontWeight: "400", color: "#888", fontSize: "11px" }}>— {selectedRegion} 지역 공유</span>}
+          </div>
+          {!selectedRegion ? (
+            <div style={{ padding: "6px", color: "#999", fontSize: "11px" }}>
+              템플릿을 선택하거나 저장하면 지역별 항공편을 등록할 수 있습니다.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "8px" }}>
+                {currentFlights.map((f) => {
+                  const isActive = form.airline === f.airline && form.days[0]?.items[0]?.transport === f.outbound.no;
+                  return (
+                  <button key={f.id} onClick={() => {
+                    if (isActive) {
+                      setForm(p => ({ ...p, airline: "" }));
+                    } else {
+                      applyFlight(f);
+                    }
+                  }} style={{
+                    borderRadius: "8px", overflow: "hidden",
+                    border: `${isActive ? "2px" : "1px"} solid ${isActive ? COLORS.accent : COLORS.border}`,
+                    padding: "10px 14px", cursor: "pointer",
+                    background: isActive ? COLORS.accent : "#fff",
+                    color: isActive ? "#fff" : "#333",
+                    fontSize: "11px", fontWeight: "600", textAlign: "left", lineHeight: "1.6",
+                    minWidth: "200px",
+                  }}>
+                    <div style={{ fontWeight: "800", fontSize: "12px", marginBottom: "4px" }}>{f.airline} {isActive && "✓"}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", opacity: 0.85, fontSize: "10px" }}>
+                      <span>✈ 가는편</span><span>{f.outbound.no}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "700" }}>
+                      <span>{f.outbound.from} {f.outbound.dep}</span>
+                      <span style={{ opacity: 0.5 }}>→</span>
+                      <span>{f.outbound.to} {f.outbound.arr}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", opacity: 0.85, fontSize: "10px", marginTop: "4px" }}>
+                      <span>✈ 오는편</span><span>{f.inbound.no}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", fontWeight: "700" }}>
+                      <span>{f.inbound.from} {f.inbound.dep}</span>
+                      <span style={{ opacity: 0.5 }}>→</span>
+                      <span>{f.inbound.to} {f.inbound.arr}</span>
+                    </div>
+                  </button>
+                  );
+                })}
+                {currentFlights.length === 0 && (
+                  <div style={{ fontSize: "11px", color: "#aaa" }}>등록된 항공편이 없습니다.</div>
+                )}
+              </div>
+
+              <button onClick={() => setShowFlightManager(!showFlightManager)} style={{
+                background: "none", border: `1px dashed ${COLORS.border}`, borderRadius: "6px",
+                padding: "5px 12px", fontSize: "10px", color: "#888", cursor: "pointer", marginBottom: showFlightManager ? "10px" : "0",
+              }}>
+                {showFlightManager ? "▲ 닫기" : "+ 항공편 등록/관리"}
+              </button>
+
+              {showFlightManager && (
+                <div style={{ background: "#fff", borderRadius: "8px", padding: "12px", border: `1px solid ${COLORS.border}` }}>
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...labelStyle, fontSize: "10px" }}>노선명</label>
+                      <input style={inputStyle} value={newFlight.route} onChange={(e) => setNewFlight(p => ({ ...p, route: e.target.value }))} placeholder="인천 ↔ 다낭" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ ...labelStyle, fontSize: "10px" }}>항공사</label>
+                      <input style={inputStyle} value={newFlight.airline} onChange={(e) => setNewFlight(p => ({ ...p, airline: e.target.value }))} placeholder="대한항공" />
+                    </div>
+                  </div>
+                  <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "4px", letterSpacing: "1px" }}>출발편 (가는편)</div>
+                  <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.outbound.no} onChange={(e) => setNewFlight(p => ({ ...p, outbound: { ...p.outbound, no: e.target.value } }))} placeholder="편명 KE 461" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.outbound.dep} onChange={(e) => setNewFlight(p => ({ ...p, outbound: { ...p.outbound, dep: e.target.value } }))} placeholder="출발 08:00" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.outbound.arr} onChange={(e) => setNewFlight(p => ({ ...p, outbound: { ...p.outbound, arr: e.target.value } }))} placeholder="도착 11:20" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.outbound.from} onChange={(e) => setNewFlight(p => ({ ...p, outbound: { ...p.outbound, from: e.target.value } }))} placeholder="출발지" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.outbound.to} onChange={(e) => setNewFlight(p => ({ ...p, outbound: { ...p.outbound, to: e.target.value } }))} placeholder="도착지" /></div>
+                  </div>
+                  <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "4px", letterSpacing: "1px" }}>귀국편 (오는편)</div>
+                  <div style={{ display: "flex", gap: "6px", marginBottom: "10px" }}>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.inbound.no} onChange={(e) => setNewFlight(p => ({ ...p, inbound: { ...p.inbound, no: e.target.value } }))} placeholder="편명 KE 462" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.inbound.dep} onChange={(e) => setNewFlight(p => ({ ...p, inbound: { ...p.inbound, dep: e.target.value } }))} placeholder="출발 12:30" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.inbound.arr} onChange={(e) => setNewFlight(p => ({ ...p, inbound: { ...p.inbound, arr: e.target.value } }))} placeholder="도착 19:00" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.inbound.from} onChange={(e) => setNewFlight(p => ({ ...p, inbound: { ...p.inbound, from: e.target.value } }))} placeholder="출발지" /></div>
+                    <div style={{ flex: 1 }}><input style={inputStyle} value={newFlight.inbound.to} onChange={(e) => setNewFlight(p => ({ ...p, inbound: { ...p.inbound, to: e.target.value } }))} placeholder="도착지" /></div>
+                  </div>
+                  <button onClick={addCustomFlight} style={{
+                    background: COLORS.accent, color: "#fff", border: "none", borderRadius: "6px",
+                    padding: "8px 20px", fontSize: "12px", fontWeight: "700", cursor: "pointer", width: "100%",
+                  }}>등록 및 저장</button>
+
+                  {currentFlights.length > 0 && (
+                    <div style={{ marginTop: "12px", borderTop: `1px solid ${COLORS.border}`, paddingTop: "10px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "6px", letterSpacing: "1px" }}>등록된 항공편 관리 ({selectedRegion})</div>
+                      {currentFlights.map(f => (
+                        <div key={f.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 8px", marginBottom: "3px", background: "#f8f8f8", borderRadius: "4px", border: `1px solid ${COLORS.border}` }}>
+                          <span style={{ fontSize: "11px", color: "#333" }}>{f.airline} — {f.route} ({f.outbound.no})</span>
+                          <button onClick={() => removeFlightPreset(f.id)} style={{
+                            border: "none", borderRadius: "4px", cursor: "pointer", padding: "2px 10px", fontSize: confirmDeleteId === f.id ? "10px" : "11px",
+                            background: confirmDeleteId === f.id ? "#e74c3c" : "#fee", color: confirmDeleteId === f.id ? "#fff" : "#c0392b",
+                            fontWeight: confirmDeleteId === f.id ? "700" : "400", transition: "all 0.2s",
+                          }}>{confirmDeleteId === f.id ? "삭제?" : "삭제"}</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </fieldset>
+
+      {/* Hotel / Room Config */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>호텔 / 객실</legend>
+        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+          <div style={{ ...fieldStyle, flex: 2 }}>
+            <label style={labelStyle}>호텔명</label>
+            <input style={inputStyle} value={hotelNameOnly} onChange={(e) => setHotelNameOnly(e.target.value)} placeholder="브리즈베이 마리나 호텔 타워윙" />
+          </div>
+        </div>
+        <label style={labelStyle}>객실 구성</label>
+        {rooms.map((room, ri) => (
+          <div key={ri} style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+            <select style={{ ...inputStyle, flex: 2, cursor: "pointer" }} value={room.type} onChange={(e) => updateRoom(ri, "type", e.target.value)}>
+              {ROOM_TYPES.map(rt => <option key={rt.id} value={rt.id}>{rt.label}</option>)}
+            </select>
+            <select style={{ ...inputStyle, width: "80px", cursor: "pointer" }} value={room.count} onChange={(e) => updateRoom(ri, "count", parseInt(e.target.value))}>
+              <option value={0}>선택</option>
+              {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}객실</option>)}
+            </select>
+            {rooms.length > 1 && (
+              <button onClick={() => removeRoom(ri)} style={{ border: "none", background: "#fee", color: "#c0392b", borderRadius: "4px", padding: "4px 8px", cursor: "pointer", fontSize: "12px" }}>×</button>
+            )}
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+          <button onClick={addRoom} style={{ border: `1px dashed ${COLORS.accent}`, background: "none", color: COLORS.accent, borderRadius: "6px", padding: "5px 14px", fontSize: "11px", cursor: "pointer" }}>
+            + 객실 추가
+          </button>
+          <button onClick={applyHotelToAllDays} style={{ border: "none", background: COLORS.accent, color: "#fff", borderRadius: "6px", padding: "5px 14px", fontSize: "11px", cursor: "pointer", fontWeight: "700" }}>
+            전체 일정에 호텔 적용
+          </button>
+        </div>
+        {rooms.length > 0 && (
+          <div style={{ marginTop: "8px", fontSize: "11px", color: "#888", background: "#f8f8f8", padding: "6px 10px", borderRadius: "4px" }}>
+            미리보기: <strong style={{ color: "#333" }}>{buildDayHotelName(hotelNameOnly || "호텔명", rooms)}</strong>
+          </div>
+        )}
+      </fieldset>
+
+      {/* Included / Excluded */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>포함 / 불포함 사항</legend>
+        <label style={labelStyle}>포함사항</label>
+        {form.included.map((item, i) => (
+          <div key={i} draggable onDragStart={onDragStart("included", i)} onDragOver={onDragOver("included", i)} onDrop={onDrop("included", i)} onDragEnd={onDragEnd} style={{ display: "flex", gap: "6px", marginBottom: "4px", ...dropHighlight("included", i) }}>
+            <span style={dragHandleStyle}>☰</span>
+            <input style={{ ...inputStyle, flex: 1 }} value={item} onChange={(e) => updateIncluded(i, e.target.value)} />
+            <button onClick={() => removeIncluded(i)} style={smallBtnStyle}>✕</button>
+          </div>
+        ))}
+        <button onClick={addIncluded} style={addBtnStyle}>+ 포함사항 추가</button>
+
+        <label style={{ ...labelStyle, marginTop: "12px" }}>불포함</label>
+        {form.excluded.map((item, i) => (
+          <div key={i} draggable onDragStart={onDragStart("excluded", i)} onDragOver={onDragOver("excluded", i)} onDrop={onDrop("excluded", i)} onDragEnd={onDragEnd} style={{ display: "flex", gap: "6px", marginBottom: "4px", ...dropHighlight("excluded", i) }}>
+            <span style={dragHandleStyle}>☰</span>
+            <input style={{ ...inputStyle, flex: 1 }} value={item} onChange={(e) => updateExcluded(i, e.target.value)} />
+            <button onClick={() => removeExcluded(i)} style={smallBtnStyle}>✕</button>
+          </div>
+        ))}
+        <button onClick={addExcluded} style={addBtnStyle}>+ 불포함 추가</button>
+      </fieldset>
+
+      {/* Remark */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>REMARK (특이사항)</legend>
+        <textarea style={{ ...inputStyle, height: "120px", resize: "vertical" }} value={form.remark} onChange={(e) => updateField("remark", e.target.value)} />
+        <div style={{ marginTop: "6px", fontSize: "10px", color: "#aaa", lineHeight: "1.6" }}>
+          색상 입력법: <span style={{ color: "#c0392b" }}>[빨강]텍스트[/빨강]</span> <span style={{ color: "#2471a3" }}>[파랑]텍스트[/파랑]</span> <span style={{ color: "#27ae60" }}>[초록]텍스트[/초록]</span> <span style={{ color: "#e67e22" }}>[주황]텍스트[/주황]</span> <span style={{ color: "#8e44ad" }}>[보라]텍스트[/보라]</span>
+        </div>
+      </fieldset>
+
+      {/* Itinerary */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>일정표</legend>
+        {form.days.map((day, di) => (
+          <div key={di} draggable onDragStart={onDragStart("day", di)} onDragOver={onDragOver("day", di)} onDrop={onDrop("day", di)} onDragEnd={onDragEnd} style={{ marginBottom: "16px", padding: "12px", background: "#f8faf8", borderRadius: "8px", border: "1px solid #e0e8e0", ...dropHighlight("day", di) }}>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+              <span style={{ ...dragHandleStyle, fontSize: "16px", color: "#aaa" }}>☰</span>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: COLORS.accent }}>{day.label} {day.dow && `(${day.dow})`}</span>
+              <div style={{ marginLeft: "auto", display: "flex", gap: "4px", alignItems: "center", fontSize: "10px", color: "#888" }}>
+                <span>조식</span>
+                <input style={{ ...inputStyle, width: "70px", fontSize: "11px", padding: "4px 6px" }} value={day.mealB || ""} onChange={(e) => updateDay(di, "mealB", e.target.value)} placeholder="호텔식" />
+                <span>중식</span>
+                <input style={{ ...inputStyle, width: "70px", fontSize: "11px", padding: "4px 6px" }} value={day.mealL || ""} onChange={(e) => updateDay(di, "mealL", e.target.value)} placeholder="불포함" />
+                <span>석식</span>
+                <input style={{ ...inputStyle, width: "70px", fontSize: "11px", padding: "4px 6px" }} value={day.mealD || ""} onChange={(e) => updateDay(di, "mealD", e.target.value)} placeholder="불포함" />
+              </div>
+              <button onClick={() => removeDay(di)} style={{ ...smallBtnStyle, background: "#fee" }}>삭제</button>
+            </div>
+            {day.items.map((item, ii) => (
+              <div key={ii} draggable onDragStart={onDragStart("dayItem", ii, di)} onDragOver={onDragOver("dayItem", ii, di)} onDrop={onDrop("dayItem", ii, di)} onDragEnd={onDragEnd} style={{ display: "flex", gap: "4px", marginBottom: "4px", alignItems: "center", background: item.highlight ? "#e3f2fd" : "transparent", borderRadius: item.highlight ? "6px" : "0", padding: item.highlight ? "4px" : "0", transition: "all 0.2s", ...dropHighlight("dayItem", ii, di) }}>
+                <span style={dragHandleStyle}>☰</span>
+                <input style={{ ...inputStyle, width: "70px", fontSize: "12px" }} value={item.place} onChange={(e) => updateDayItem(di, ii, "place", e.target.value)} placeholder="장소" />
+                <input style={{ ...inputStyle, width: "70px", fontSize: "12px" }} value={item.transport} onChange={(e) => updateDayItem(di, ii, "transport", e.target.value)} placeholder="교통" />
+                <input style={{ ...inputStyle, width: "55px", fontSize: "12px" }} value={item.time} onChange={(e) => updateDayItem(di, ii, "time", e.target.value)} placeholder="시간" />
+                <input style={{ ...inputStyle, flex: 1, fontSize: "12px" }} value={item.desc} onChange={(e) => updateDayItem(di, ii, "desc", e.target.value)} placeholder="일정 내용" />
+                <label style={{ fontSize: "11px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "2px", color: item.highlight ? "#1565c0" : "#888", fontWeight: item.highlight ? "700" : "400" }}>
+                  <input type="checkbox" checked={!!item.highlight} onChange={(e) => updateDayItem(di, ii, "highlight", e.target.checked)} />
+                  골프
+                </label>
+                <button onClick={() => removeDayItem(di, ii)} style={smallBtnStyle}>✕</button>
+              </div>
+            ))}
+            <button onClick={() => addDayItem(di)} style={{ ...addBtnStyle, fontSize: "11px" }}>+ 일정 추가</button>
+          </div>
+        ))}
+        <button onClick={addDay} style={{ ...addBtnStyle, background: COLORS.primary, color: "#fff" }}>+ 일차 추가</button>
+      </fieldset>
+    </div>
+  );
+
+  const labelStyle = { display: "block", fontSize: "12px", fontWeight: "600", color: "#555", marginBottom: "4px" };
+  const inputStyle = {
+    padding: "7px 10px", borderRadius: "5px", border: "1px solid #ccc", fontSize: "13px",
+    outline: "none", width: "100%", boxSizing: "border-box", fontFamily: "inherit",
+  };
+  const fieldsetStyle = { border: "1px solid #ddd", borderRadius: "8px", padding: "16px", marginBottom: "16px" };
+  const legendStyle = { fontWeight: "700", fontSize: "14px", color: COLORS.primary, padding: "0 8px" };
+  const gridStyle = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" };
+  const fieldStyle = {};
+  const smallBtnStyle = {
+    padding: "4px 8px", borderRadius: "4px", border: "1px solid #ddd", background: "#fff",
+    cursor: "pointer", fontSize: "12px", color: "#999", flexShrink: 0,
+  };
+  const addBtnStyle = {
+    padding: "6px 12px", borderRadius: "5px", border: "1px dashed #aaa", background: "#fff",
+    cursor: "pointer", fontSize: "12px", color: "#666", marginTop: "6px",
+  };
+
+  const uploadBoxStyle = {
+    width: "100%", height: "180px", border: "2px dashed #ccc", borderRadius: "8px",
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+    background: "#f9f9f9", overflow: "hidden", position: "relative",
+  };
+
+  const renderBrochureForm = () => (
+    <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>소개서 종류</legend>
+        <div style={{ display: "flex", gap: "8px" }}>
+          {[["hotel", "호텔 소개서"], ["golf", "골프장 소개서"]].map(([val, label]) => (
+            <button key={val} onClick={() => setBrochure({ ...emptyBrochure, type: val, logoImg: brochure.logoImg })} style={{
+              padding: "10px 24px", borderRadius: "6px", border: "1px solid #ccc",
+              background: brochure.type === val ? COLORS.primary : "#fff",
+              color: brochure.type === val ? "#fff" : "#333",
+              cursor: "pointer", fontSize: "14px", fontWeight: "700",
+            }}>{label}</button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>기본 정보</legend>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div>
+            <label style={labelStyle}>한글 이름</label>
+            <input style={{ ...inputStyle, fontSize: "16px", fontWeight: "700" }} value={brochure.nameKo}
+              onChange={(e) => updateBrochure("nameKo", e.target.value)}
+              placeholder={brochure.type === "hotel" ? "돈찬 팰리스 호텔" : "오션링크스 골프클럽"} />
+          </div>
+          <div>
+            <label style={labelStyle}>영문 이름</label>
+            <input style={inputStyle} value={brochure.nameEn}
+              onChange={(e) => updateBrochure("nameEn", e.target.value)}
+              placeholder={brochure.type === "hotel" ? "DON CHAN PALACE HOTEL & CONVENTION" : "OCEAN LINKS GOLF CLUB"} />
+          </div>
+          <div>
+            <label style={labelStyle}>한줄 소개 (서브타이틀)</label>
+            <input style={inputStyle} value={brochure.subtitle}
+              onChange={(e) => updateBrochure("subtitle", e.target.value)}
+              placeholder={brochure.type === "hotel" ? "메콩강을 조망할 수 있는 리버뷰" : "태평양을 바라보며 라운딩하는 프리미엄 코스"} />
+          </div>
+          <div>
+            <label style={labelStyle}>소개 헤딩 (굵은 제목)</label>
+            <input style={inputStyle} value={brochure.heading}
+              onChange={(e) => updateBrochure("heading", e.target.value)}
+              placeholder={brochure.type === "hotel" ? "비엔티안의 대표 럭셔리 호텔" : "자연과 함께하는 프리미엄 골프 코스"} />
+          </div>
+          <div>
+            <label style={labelStyle}>상세 설명</label>
+            <textarea style={{ ...inputStyle, height: "100px", resize: "vertical" }} value={brochure.description}
+              onChange={(e) => updateBrochure("description", e.target.value)}
+              placeholder="호텔/골프장에 대한 상세 설명을 입력하세요..." />
+          </div>
+          {brochure.type === "golf" && (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>HOLE</label>
+                <input style={inputStyle} value={brochure.holes}
+                  onChange={(e) => updateBrochure("holes", e.target.value)} placeholder="27" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>PAR</label>
+                <input style={inputStyle} value={brochure.par}
+                  onChange={(e) => updateBrochure("par", e.target.value)} placeholder="108" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>YARD</label>
+                <input style={inputStyle} value={brochure.yard}
+                  onChange={(e) => updateBrochure("yard", e.target.value)} placeholder="9,842" />
+              </div>
+            </div>
+          )}
+        </div>
+      </fieldset>
+
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>사진 업로드</legend>
+        <div style={{ marginBottom: "12px" }}>
+          <label style={labelStyle}>회사 로고</label>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ ...uploadBoxStyle, width: "120px", height: "80px", flexShrink: 0 }} onClick={() => document.getElementById("logo-upload").click()}>
+              {brochure.logoImg ? (
+                <img src={brochure.logoImg} alt="로고" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              ) : (
+                <div style={{ textAlign: "center", color: "#aaa", fontSize: "11px" }}>로고 업로드</div>
+              )}
+              <input id="logo-upload" type="file" accept="image/*" style={{ display: "none" }}
+                onChange={(e) => handleImageUpload("logoImg", null, e)} />
+            </div>
+            {brochure.logoImg && (
+              <button onClick={() => updateBrochure("logoImg", null)} style={smallBtnStyle}>삭제</button>
+            )}
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>메인 사진 (대표 이미지)</label>
+          <div style={{ ...uploadBoxStyle, height: "220px" }} onClick={() => document.getElementById("hero-upload").click()}>
+            {brochure.heroImg ? (
+              <img src={brochure.heroImg} alt="메인" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <div style={{ textAlign: "center", color: "#aaa" }}>
+                <div style={{ fontSize: "32px", marginBottom: "8px" }}>+</div>
+                <div style={{ fontSize: "13px" }}>클릭하여 메인 사진 업로드</div>
+              </div>
+            )}
+            <input id="hero-upload" type="file" accept="image/*" style={{ display: "none" }}
+              onChange={(e) => handleImageUpload("heroImg", null, e)} />
+          </div>
+          {brochure.heroImg && (
+            <button onClick={() => updateBrochure("heroImg", null)} style={{ ...smallBtnStyle, marginTop: "4px" }}>메인 사진 삭제</button>
+          )}
+        </div>
+        <div style={{ marginTop: "12px" }}>
+          <label style={labelStyle}>서브 사진 (최대 3장)</label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+            {brochure.subImgs.map((img, i) => (
+              <div key={i}>
+                <div style={{ ...uploadBoxStyle, height: "140px" }} onClick={() => document.getElementById(`sub-upload-${i}`).click()}>
+                  {img ? (
+                    <img src={img} alt={`서브${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ textAlign: "center", color: "#aaa" }}>
+                      <div style={{ fontSize: "24px" }}>+</div>
+                      <div style={{ fontSize: "11px" }}>사진 {i + 1}</div>
+                    </div>
+                  )}
+                  <input id={`sub-upload-${i}`} type="file" accept="image/*" style={{ display: "none" }}
+                    onChange={(e) => handleImageUpload("subImgs", i, e)} />
+                </div>
+                {img && (
+                  <button onClick={() => { const arr = [...brochure.subImgs]; arr[i] = null; updateBrochure("subImgs", arr); }}
+                    style={{ ...smallBtnStyle, marginTop: "2px", fontSize: "11px" }}>삭제</button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </fieldset>
+    </div>
+  );
+
+  const renderBrochurePreview = () => {
+    const hasSubImgs = brochure.subImgs.filter(Boolean);
+
+    if (brochure.type === "golf") {
+      return (
+        <div ref={brochureRef} style={{ width: "780px", margin: "0 auto", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", background: "#0c1e14" }}>
+          {/* Hero Image with overlay */}
+          <div style={{ width: "100%", height: "380px", overflow: "hidden", position: "relative" }}>
+            {brochure.heroImg ? (
+              <img src={brochure.heroImg} alt="메인" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: "16px", background: "#162e20" }}>
+                메인 사진을 업로드하세요
+              </div>
+            )}
+            {/* Gradient overlay */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "120px", background: "linear-gradient(transparent, #0c1e14)" }} />
+          </div>
+
+          {/* Title Section */}
+          <div style={{ padding: "24px 50px 28px", textAlign: "center" }}>
+            {brochure.logoImg && <img src={brochure.logoImg} alt="로고" style={{ height: "200px", objectFit: "contain", marginBottom: "10px" }} />}
+
+            {/* Decorative line + Name */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px", margin: "0 auto 8px", maxWidth: "600px" }}>
+              <div style={{ flex: 1, height: "1px", background: "linear-gradient(to right, transparent, #c8a84e)" }} />
+              <div style={{ fontSize: "34px", fontWeight: "900", color: "#fff", letterSpacing: "4px", whiteSpace: "nowrap" }}>
+                {brochure.nameKo || "골프장 이름"}
+              </div>
+              <div style={{ flex: 1, height: "1px", background: "linear-gradient(to left, transparent, #c8a84e)" }} />
+            </div>
+            {brochure.nameEn && <div style={{ fontSize: "14px", color: "#7a9e8a", letterSpacing: "3px", marginBottom: "16px" }}>{brochure.nameEn}</div>}
+
+            {/* Hole/Par/Yard badges - fixed width for symmetry */}
+            {(brochure.holes || brochure.par || brochure.yard) && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0", margin: "20px 0", border: "1px solid #2a4a35", borderRadius: "6px", overflow: "hidden" }}>
+                {[
+                  { label: "HOLE", value: brochure.holes },
+                  { label: "PAR", value: brochure.par },
+                  { label: "YARD", value: brochure.yard },
+                ].map((item, i) => (
+                  item.value && <div key={i} style={{ textAlign: "center", padding: "14px 0 18px", width: "120px", borderLeft: i > 0 ? "1px solid #2a4a35" : "none" }}>
+                    <div style={{ fontSize: "11px", color: "#c8a84e", letterSpacing: "3px", marginBottom: "5px", fontWeight: "700" }}>{item.label}</div>
+                    <div style={{ fontSize: "28px", fontWeight: "900", color: "#fff", lineHeight: "1" }}>{item.value}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Simple thin divider */}
+            <div style={{ width: "80px", height: "1px", background: "#2a4a35", margin: "20px auto" }} />
+
+            {brochure.description && (
+              <div style={{ fontSize: "14.5px", color: "#b0c8b8", lineHeight: "2.1", whiteSpace: "pre-line", textAlign: "center", padding: "0 20px", maxWidth: "660px", margin: "0 auto" }}>
+                {brochure.description}
+              </div>
+            )}
+          </div>
+
+          {/* Sub Images with spacing */}
+          {hasSubImgs.length > 0 && (
+            <div style={{ padding: "16px 24px 24px", display: "flex", gap: "12px" }}>
+              {hasSubImgs.map((img, i) => (
+                <div key={i} style={{ flex: 1, height: "200px", borderRadius: "8px", overflow: "hidden" }}>
+                  <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ padding: "14px 20px", textAlign: "center", borderTop: "1px solid #1a3325" }}>
+            <div style={{ color: "#3d5e4a", fontSize: "10px", letterSpacing: "1px" }}>
+              (주)초이스골프 | TEL: 1533-3160 | www.chctour.com
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Hotel layout (existing)
+    return (
+      <div ref={brochureRef} style={{ width: "780px", margin: "0 auto", background: "#fff", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif" }}>
+        {/* Hero Image */}
+        <div style={{ width: "100%", height: "360px", background: "#e0e0e0", overflow: "hidden" }}>
+          {brochure.heroImg ? (
+            <img src={brochure.heroImg} alt="메인" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: "16px" }}>
+              메인 사진을 업로드하세요
+            </div>
+          )}
+        </div>
+
+        {/* Title Section */}
+        <div style={{ background: "linear-gradient(135deg, #f8faf7 0%, #eef3ec 100%)", padding: "28px 40px", textAlign: "center", borderBottom: `3px solid ${COLORS.primary}` }}>
+          {brochure.logoImg && <img src={brochure.logoImg} alt="로고" style={{ height: "50px", marginBottom: "8px", objectFit: "contain" }} />}
+          <div style={{ fontSize: "11px", color: COLORS.primary, letterSpacing: "3px", marginBottom: "6px" }}>초이스골프</div>
+          <div style={{ fontSize: "14px", color: "#555", letterSpacing: "2px", marginBottom: "6px" }}>{brochure.nameEn || "HOTEL NAME"}</div>
+          <div style={{ fontSize: "28px", fontWeight: "900", color: "#1a1a1a", letterSpacing: "3px" }}>{brochure.nameKo || "호텔 이름"}</div>
+        </div>
+
+        {/* Content Section */}
+        <div style={{ padding: "24px 32px 32px" }}>
+          <div style={{ display: "flex", gap: "20px" }}>
+            {hasSubImgs.length > 0 && (
+              <div style={{ flex: hasSubImgs.length >= 2 ? "1.2" : "1", display: "flex", flexDirection: "column", gap: "8px" }}>
+                {hasSubImgs.length === 1 && (
+                  <div style={{ width: "100%", height: "280px", borderRadius: "6px", overflow: "hidden" }}>
+                    <img src={hasSubImgs[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+                {hasSubImgs.length === 2 && hasSubImgs.map((img, i) => (
+                  <div key={i} style={{ width: "100%", height: "136px", borderRadius: "6px", overflow: "hidden" }}>
+                    <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                ))}
+                {hasSubImgs.length === 3 && (
+                  <>
+                    <div style={{ width: "100%", height: "170px", borderRadius: "6px", overflow: "hidden" }}>
+                      <img src={hasSubImgs[0]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      {hasSubImgs.slice(1).map((img, i) => (
+                        <div key={i} style={{ flex: 1, height: "120px", borderRadius: "6px", overflow: "hidden" }}>
+                          <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              {brochure.subtitle && (
+                <div style={{ fontSize: "14px", color: COLORS.primary, fontWeight: "700", marginBottom: "12px", lineHeight: "1.5" }}>
+                  {brochure.subtitle}
+                </div>
+              )}
+              <div style={{ fontSize: "18px", fontWeight: "800", color: "#1a1a1a", marginBottom: "14px" }}>
+                {brochure.heading || "호텔 소개"}
+              </div>
+              <div style={{ fontSize: "13px", color: "#444", lineHeight: "1.8", whiteSpace: "pre-line" }}>
+                {brochure.description || "상세 설명을 입력하세요."}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ background: COLORS.primary, padding: "10px 20px", textAlign: "center" }}>
+          <div style={{ color: COLORS.border, fontSize: "10px", letterSpacing: "1px" }}>
+            (주)초이스골프 | TEL: 1533-3160 | www.chctour.com
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // === CONFIRMATION FORM ===
+  // === 확정서 신규 작성 (초기화) ===
+  const resetConfirm = () => {
+    if (!window.confirm("현재 작성된 확정서 내용이 모두 초기화됩니다. 계속하시겠습니까?")) return;
+    setConfirm({
+      visitJapan: true,
+      hotelNameEn: "", hotelPhoneEn: "", hotelAddressEn: "", hotelZip: "",
+      flights: [
+        { name: "", airport: "", counter: "", depCity: "인천(ICN) 출발", depTime: "", arrCity: "", arrTime: "" },
+        { name: "", airport: "", counter: "", depCity: "", depTime: "", arrCity: "인천(ICN) 도착", arrTime: "" },
+      ],
+      productName: "", contactName: "최진우 대표 1533-3160 / 010-5897-1053",
+      startDate: "", nights: "3박4일",
+      people: "", hotelInfo: "", airline: "",
+      included: "", excluded: "", remark: "",
+      picketName: "", hasGuide: false, guideName: "", guidePhone: "", driverName: "", driverPhone: "",
+      days: [
+        { label: "1일차", date: "", items: [{ place: "", transport: "", time: "", desc: "", highlight: false, teeTime: "" }], mealB: "", mealL: "", mealD: "", hotel: "" },
+      ],
+      checklist: [
+        "여행 일정 중 항공 및 스케줄 등의 변경이 생기면 담당자 또는 카카오톡채널 @초이스골프 통하여 문의바랍니다.",
+      ],
+    });
+    setActiveConfirmTplId(null);
+    setJpgUploadMsg("");
+  };
+
+  // === JPG 업로드 → AI 인식 → 확정서 자동 채우기 ===
+  const handleJpgUpload = async (file) => {
+    if (!file || !file.type.startsWith("image/")) { setJpgUploadMsg("이미지 파일만 업로드 가능합니다."); return; }
+    setJpgUploading(true);
+    setJpgUploadMsg("🔍 견적서 이미지 분석 중...");
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = () => rej(new Error("파일 읽기 실패"));
+        r.readAsDataURL(file);
+      });
+      const mediaType = file.type === "image/png" ? "image/png" : "image/jpeg";
+
+      const systemPrompt = `당신은 한국 골프여행사의 견적서/확정서 이미지를 분석하여 구조화된 데이터로 변환하는 전문가입니다.
+
+반드시 아래 JSON 형식만 출력하세요. 설명이나 마크다운 백틱은 절대 포함하지 마세요.
+
+[한글 인식 - 극도로 주의!]
+골프여행 문서에서 자주 나오는 정확한 표현 목록입니다. 이미지 텍스트가 불확실할 때 반드시 이 목록의 표현을 사용하세요:
+
+=== 포함사항 필수 용어 ===
+왕복항공권 (절대 "항복유공금", "왕복유공금" 아님)
+좌석지정 및 수화물 (절대 "좌석자원" 아님)
+호텔숙박 - 2인1실 (절대 "조별숙박" 아님)
+그린피, 카트비 (절대 "그린파", "카투비" 아님)
+캐디피
+송영비용, 송영차량 (절대 "솔영비용" 아님)
+여행자보험 (절대 "여행자보헝" 아님)
+기본중식 (절대 "라운드식" 아님)
+음료 및 주류 별도 (절대 "솔로 및 주류 불도" 아님)
+온천 리조트 (절대 "유럽 리조트" 아님)
+전일정 (절대 "선일정" 아님)
+한국가이드 전일정 동반
+
+=== 불포함사항 용어 ===
+관광팀 중식
+전일정 석식 (절대 "선일정 석식" 아님)
+개인비용
+
+=== REMARK 용어 ===
+메뉴 선택 (절대 "여유 선택" 아님)
+원하시는 곳이나 (절대 "결석시는 곤이나" 아님)
+가이드 추천으로 동행
+항공 및 현지사정에 의해 다소 변경될 수 있습니다
+
+=== 식사 표기 ===
+호텔식, 클럽식, 현지식, 한식, 일식, 뷔페식
+불포함, 별도
+mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
+
+=== 일정 용어 ===
+골프장 이동, 공항 이동, 호텔 체크인, 호텔 체크아웃
+라운딩 후 호텔이동, 골프팀/관광팀
+유가와라온천, 아타미, 누마즈, 시즈오카
+고텐바지구, 관광(가이드동반)
+온천 및 뷔페식 석식
+
+=== 기본정보 ===
+인원 필드에는 인원수만 (예: "9인+가이드2인"), 절대 일수를 넣지 마세요
+
+[핵심 규칙]
+1. 항공편 시간과 골프 티옵시간은 별개:
+   - flights 배열: 비행기 편명, 출발/도착 시간
+   - 골프 item의 time: TEE 시간
+2. 일정 items에서 골프 라운딩 행만 highlight: true
+3. 가격/금액 정보는 추출하지 마세요
+4. 불확실한 텍스트는 위 용어 목록에서 가장 유사한 올바른 단어를 사용!
+
+{
+  "productName": "상품명",
+  "people": "인원수 (예: 9인+가이드2인)",
+  "hotelInfo": "호텔명",
+  "airline": "항공사명",
+  "included": "포함사항 줄바꿈 구분",
+  "excluded": "불포함사항 줄바꿈 구분",
+  "remark": "REMARK 내용 줄바꿈 구분",
+  "flights": [
+    {"name":"편명","depCity":"출발지","depTime":"출발시간","arrCity":"도착지","arrTime":"도착시간"}
+  ],
+  "days": [
+    {
+      "label": "1일차",
+      "dow": "3/13 금",
+      "items": [
+        {"place":"장소","transport":"교통편","time":"시간","desc":"일정내용","highlight":false}
+      ],
+      "mealB": "값만(호텔식)",
+      "mealL": "값만(불포함)",
+      "mealD": "값만(현지식)",
+      "hotel": "호텔명"
+    }
+  ]
+}`;
+
+      if (!apiKey) { setJpgUploadMsg("⚠️ API 키가 설정되지 않았습니다. 상단 ⚙️설정에서 Anthropic API 키를 입력하세요."); setJpgUploading(false); return; }
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({
+          model: "claude-opus-4-6",
+          max_tokens: 4000,
+          temperature: 0,
+          system: systemPrompt,
+          messages: [{
+            role: "user",
+            content: [
+              { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+              { type: "text", text: "이 이미지의 모든 텍스트를 정확히 읽어서 JSON으로 추출하세요. 한글 인식이 불확실하면 용어 목록의 올바른 단어를 사용하세요." }
+            ]
+          }],
+        }),
+      });
+      const data = await resp.json();
+      const text = data.content?.map(c => c.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+
+      // === 후처리: OCR 오류 자동 교정 ===
+      const ocrFix = (s) => {
+        if (!s) return s;
+        return s
+          .replace(/항복유공금/g, "왕복항공권").replace(/왕복유공금/g, "왕복항공권").replace(/항복항공권/g, "왕복항공권")
+          .replace(/좌석자원/g, "좌석지정").replace(/좌석지원/g, "좌석지정")
+          .replace(/조별숙박/g, "호텔숙박").replace(/호델숙박/g, "호텔숙박")
+          .replace(/솔영비용/g, "송영비용").replace(/송열비용/g, "송영비용")
+          .replace(/여행자보헝/g, "여행자보험").replace(/여행자보형/g, "여행자보험")
+          .replace(/그린파/g, "그린피").replace(/카투비/g, "카트비").replace(/캐디파/g, "캐디피")
+          .replace(/라운드식/g, "기본중식").replace(/불도\b/g, "별도")
+          .replace(/유럽 리조트/g, "온천 리조트").replace(/유렵 리조트/g, "온천 리조트")
+          .replace(/선일정/g, "전일정")
+          .replace(/여유 선택/g, "메뉴 선택")
+          .replace(/결석시는 곤이나/g, "원하시는 곳이나").replace(/걸석시는/g, "원하시는")
+          .replace(/솔로 및 주류/g, "음료 및 주류")
+          .replace(/클린피/g, "그린피").replace(/솔영차량/g, "송영차량")
+          .replace(/뷔패식/g, "뷔페식").replace(/뷔폐식/g, "뷔페식");
+      };
+      if (parsed.included) parsed.included = ocrFix(parsed.included);
+      if (parsed.excluded) parsed.excluded = ocrFix(parsed.excluded);
+      if (parsed.remark) parsed.remark = ocrFix(parsed.remark);
+      if (parsed.productName) parsed.productName = ocrFix(parsed.productName);
+      if (parsed.days) parsed.days.forEach(d => {
+        if (d.hotel) d.hotel = ocrFix(d.hotel);
+        if (d.items) d.items.forEach(it => { if (it.desc) it.desc = ocrFix(it.desc); });
+      });
+
+      // 날짜 추출 시도 (dow에서 M/D 패턴 찾기)
+      let startDateVal = "";
+      if (parsed.days?.[0]?.dow) {
+        const m = parsed.days[0].dow.match(/(\d{1,2})\/(\d{1,2})/);
+        if (m) {
+          const year = new Date().getFullYear();
+          const month = m[1].padStart(2, "0");
+          const day = m[2].padStart(2, "0");
+          startDateVal = `${year}-${month}-${day}`;
+        }
+      }
+      const nightCount = parsed.days?.length ? `${parsed.days.length - 1}박${parsed.days.length}일` : confirm.nights;
+      const DOW_MAP = ["일","월","화","수","목","금","토"];
+
+      // 확정서 폼에 채우기 (날짜도 같이 적용)
+      const mappedDays = parsed.days?.map((d, i) => {
+        let dateStr = d.dow || "";
+        if (startDateVal) {
+          const base = new Date(startDateVal + "T00:00:00");
+          base.setDate(base.getDate() + i);
+          dateStr = `${base.getMonth()+1}/${base.getDate()} ${DOW_MAP[base.getDay()]}`;
+        }
+        return {
+          label: d.label || `${i+1}일차`,
+          date: dateStr,
+          items: (d.items || []).map(it => ({
+            place: it.place || "", transport: it.transport || "", time: it.time || "",
+            desc: it.desc || "", highlight: !!it.highlight, teeTime: "",
+          })),
+          mealB: d.mealB || "", mealL: d.mealL || "", mealD: d.mealD || "",
+          hotel: d.hotel || "",
+        };
+      }) || [];
+
+      setConfirm(p => ({
+        ...p,
+        productName: parsed.productName || p.productName,
+        startDate: startDateVal || p.startDate,
+        nights: nightCount || p.nights,
+        people: parsed.people || p.people,
+        hotelInfo: parsed.hotelInfo || p.hotelInfo,
+        airline: parsed.airline || p.airline,
+        included: parsed.included || p.included,
+        excluded: parsed.excluded || p.excluded,
+        remark: parsed.remark || p.remark,
+        flights: (parsed.flights && parsed.flights.length > 0) ? parsed.flights.map(f => ({
+          name: f.name || "", airport: f.airport || "", counter: f.counter || "",
+          depCity: f.depCity || "", depTime: f.depTime || "", arrCity: f.arrCity || "", arrTime: f.arrTime || "",
+        })) : p.flights,
+        days: mappedDays.length > 0 ? mappedDays : p.days,
+      }));
+
+      setJpgUploadMsg(`✅ 인식 완료! ${parsed.days?.length || 0}일 일정이 자동 입력되었습니다. 티옵시간과 세부사항을 확인해주세요.`);
+    } catch (err) {
+      console.error(err);
+      setJpgUploadMsg("❌ 이미지 분석 실패: " + err.message);
+    }
+    setJpgUploading(false);
+  };
+
+  const importQuoteToConfirm = () => {
+    const mappedDays = form.days.map((d, i) => ({
+      label: d.label || `${i+1}일차`,
+      date: startDate ? (() => { const dt = new Date(startDate + "T00:00:00"); dt.setDate(dt.getDate() + i); return `${dt.getMonth()+1}/${dt.getDate()} ${DOW_KR2[dt.getDay()]}`; })() : "",
+      items: d.items.map(it => ({ place: it.place || "", transport: it.transport || "", time: it.time || "", desc: it.desc || "", highlight: !!it.highlight, teeTime: "" })),
+      mealB: d.mealB || "", mealL: d.mealL || "", mealD: d.mealD || "",
+      hotel: d.hotelName || hotelNameOnly || "",
+    }));
+    const rf = (regionFlights[selectedRegion] || [])[0];
+    const mappedFlights = rf ? [
+      { name: rf.airline || "", airport: "", counter: "", depCity: `${rf.outbound?.from || "인천"}(ICN) 출발`, depTime: rf.outbound?.dep || "", arrCity: `${rf.outbound?.to || ""} 도착`, arrTime: rf.outbound?.arr || "" },
+      { name: rf.airline || "", airport: "", counter: "", depCity: `${rf.inbound?.from || ""} 출발`, depTime: rf.inbound?.dep || "", arrCity: `${rf.inbound?.to || "인천"}(ICN) 도착`, arrTime: rf.inbound?.arr || "" },
+    ] : undefined;
+    setConfirm(p => ({
+      ...p,
+      productName: form.productName || p.productName,
+      startDate: startDate || p.startDate,
+      nights: selectedNights || p.nights,
+      people: person || p.people,
+      hotelInfo: hotelNameOnly || form.hotel || p.hotelInfo,
+      airline: form.airline || p.airline,
+      included: Array.isArray(form.included) ? form.included.join("\n") : (form.included || p.included),
+      excluded: Array.isArray(form.excluded) ? form.excluded.join("\n") : (form.excluded || p.excluded),
+      remark: form.remark || p.remark,
+      days: mappedDays.length > 0 ? mappedDays : p.days,
+      ...(mappedFlights ? { flights: mappedFlights } : {}),
+    }));
+    setConfirmCountry(selectedCountry);
+    setConfirmRegion(selectedRegion || "");
+  };
+
+  const ctFilteredTemplates = savedConfirmTemplates.filter(t => t.country === confirmCountry);
+  const ctRegions = [...new Set(ctFilteredTemplates.map(t => t.region).filter(Boolean))].sort();
+
+  const renderConfirmForm = () => (
+    <div style={{ padding: "16px 0" }}>
+      {/* Country Tabs */}
+      <div style={{ marginBottom: "12px" }}>
+        <label style={labelStyle}>국가 선택</label>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" }}>
+          {TEMPLATE_GROUPS.filter(g => g.country !== "새로 만들기").map((g) => (
+            <button key={g.country} onClick={() => setConfirmCountry(g.country)} style={{
+              padding: "8px 16px", borderRadius: "6px", border: `1px solid ${confirmCountry === g.country ? COLORS.accent : "#ddd"}`,
+              background: confirmCountry === g.country ? COLORS.accent : "#fff",
+              color: confirmCountry === g.country ? "#fff" : "#555",
+              cursor: "pointer", fontSize: "13px", fontWeight: "700",
+            }}>
+              {g.flag} {g.country}
+            </button>
+          ))}
+        </div>
+        {/* Region > Confirm Templates */}
+        {ctRegions.length > 0 ? (
+          ctRegions.map(region => {
+            const regionTpls = ctFilteredTemplates.filter(t => t.region === region);
+            return (
+              <div key={region} style={{ marginBottom: "10px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#888", marginBottom: "5px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  📍 {region}
+                </div>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginLeft: "12px" }}>
+                  {regionTpls.map((t) => (
+                    <div key={t.id} style={{ display: "flex", alignItems: "stretch", borderRadius: "6px", overflow: "hidden", border: `${activeConfirmTplId === t.id ? "2px" : "1px"} solid ${activeConfirmTplId === t.id ? COLORS.accent : "#ccc"}` }}>
+                      <button onClick={() => loadConfirmTemplate(t)} style={{
+                        padding: "8px 16px", border: "none", cursor: "pointer",
+                        background: activeConfirmTplId === t.id ? COLORS.accentLight : "#fff",
+                        color: activeConfirmTplId === t.id ? COLORS.accent : "#333",
+                        fontSize: "12px", fontWeight: "600",
+                      }}>
+                        {t.name}
+                      </button>
+                      <button onClick={() => deleteConfirmTemplate(t.id)} style={{
+                        border: "none", cursor: "pointer",
+                        padding: confirmDeleteCtId === t.id ? "0 12px" : "0 8px",
+                        fontSize: confirmDeleteCtId === t.id ? "10px" : "12px",
+                        fontWeight: confirmDeleteCtId === t.id ? "700" : "400",
+                        background: confirmDeleteCtId === t.id ? "#e74c3c" : "#fee",
+                        color: confirmDeleteCtId === t.id ? "#fff" : "#c0392b",
+                        borderLeft: `1px solid ${COLORS.border}`,
+                        transition: "all 0.2s",
+                      }}>{confirmDeleteCtId === t.id ? "삭제?" : "×"}</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ padding: "8px 12px", background: "#f9f9f9", borderRadius: "6px", color: "#999", fontSize: "12px", marginBottom: "10px" }}>
+            저장된 확정서 템플릿이 없습니다. 내용 작성 후 저장해주세요.
+          </div>
+        )}
+        {/* Save / Import buttons */}
+        {!showConfirmSaveDialog ? (
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center", marginTop: "8px" }}>
+            <button onClick={() => { setShowConfirmSaveDialog(true); setSaveConfirmTplCountry(confirmCountry); setSaveConfirmTplRegion(confirmRegion || ""); setSaveConfirmTplName(activeConfirmTplId ? (savedConfirmTemplates.find(t => t.id === activeConfirmTplId)?.name || confirm.productName || "") : (confirm.productName || "")); }} style={{
+              background: "none", border: `1px dashed ${COLORS.accent}`, borderRadius: "6px",
+              padding: "6px 14px", fontSize: "11px", color: COLORS.accent, cursor: "pointer",
+            }}>
+              {activeConfirmTplId ? "💾 현재 확정서 수정 저장" : "💾 새 확정서 템플릿 저장"}
+            </button>
+            <button onClick={importQuoteToConfirm} style={{
+              padding: "6px 14px", borderRadius: "6px", border: `1px dashed #888`,
+              background: "#fff", color: "#555", fontSize: "11px", cursor: "pointer",
+            }}>📋 견적서 탭에서 가져오기</button>
+            <button onClick={resetConfirm} style={{
+              padding: "6px 14px", borderRadius: "6px", border: `1px dashed #e74c3c`,
+              background: "#fff", color: "#e74c3c", fontSize: "11px", cursor: "pointer",
+            }}>📄 신규 작성</button>
+            {savedConfirmTemplates.length > 0 && (
+              <span style={{ fontSize: "10px", color: "#aaa" }}>저장된 확정서: {savedConfirmTemplates.length}개</span>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: "#f8faf8", borderRadius: "8px", padding: "12px", border: `1px solid ${COLORS.border}`, display: "flex", gap: "8px", alignItems: "flex-end", flexWrap: "wrap", marginTop: "8px" }}>
+            <div style={{ width: "120px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>국가</label>
+              <select style={inputStyle} value={saveConfirmTplCountry} onChange={(e) => setSaveConfirmTplCountry(e.target.value)}>
+                {TEMPLATE_GROUPS.filter(g => g.country !== "새로 만들기").map(g => (
+                  <option key={g.country} value={g.country}>{g.flag} {g.country}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ width: "140px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>지역</label>
+              <input style={inputStyle} value={saveConfirmTplRegion} onChange={(e) => setSaveConfirmTplRegion(e.target.value)} placeholder="시즈오카/누마즈" list="ct-region-list" />
+              <datalist id="ct-region-list">
+                {[...new Set(savedConfirmTemplates.map(t => t.region).filter(Boolean))].map(r => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
+            <div style={{ flex: 1, minWidth: "150px" }}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>템플릿명</label>
+              <input style={inputStyle} value={saveConfirmTplName} onChange={(e) => setSaveConfirmTplName(e.target.value)} placeholder="시즈오카 6박7일 골프투어" />
+            </div>
+            <button onClick={saveConfirmTemplate} style={{
+              background: COLORS.accent, color: "#fff", border: "none", borderRadius: "6px",
+              padding: "8px 20px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+            }}>{activeConfirmTplId ? "수정 저장" : "새로 저장"}</button>
+            <button onClick={() => setShowConfirmSaveDialog(false)} style={{
+              background: "#eee", color: "#666", border: "none", borderRadius: "6px",
+              padding: "8px 14px", fontSize: "12px", cursor: "pointer",
+            }}>취소</button>
+          </div>
+        )}
+      </div>
+
+      {/* JPG Upload → AI Recognition */}
+      <div style={{ marginBottom: "16px" }}>
+        <div
+          onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = COLORS.accent; e.currentTarget.style.background = COLORS.accentLight; }}
+          onDragLeave={(e) => { e.currentTarget.style.borderColor = "#ccc"; e.currentTarget.style.background = "#fafafa"; }}
+          onDrop={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = "#ccc"; e.currentTarget.style.background = "#fafafa"; const f = e.dataTransfer.files[0]; if (f) handleJpgUpload(f); }}
+          onClick={() => { if (jpgUploading) return; const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.onchange = (ev) => { const f = ev.target.files[0]; if (f) handleJpgUpload(f); }; inp.click(); }}
+          style={{
+            border: "2px dashed #ccc", borderRadius: "10px", padding: "20px", textAlign: "center",
+            cursor: jpgUploading ? "wait" : "pointer", background: "#fafafa", transition: "all 0.2s",
+          }}
+        >
+          {jpgUploading ? (
+            <div>
+              <div style={{ fontSize: "28px", marginBottom: "6px" }}>⏳</div>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: COLORS.accent }}>AI가 견적서를 분석하고 있습니다...</div>
+              <div style={{ fontSize: "11px", color: "#999", marginTop: "4px" }}>약 10~15초 소요</div>
+            </div>
+          ) : (
+            <div>
+              <div style={{ fontSize: "28px", marginBottom: "6px" }}>📎</div>
+              <div style={{ fontSize: "13px", fontWeight: "700", color: "#555" }}>견적서 JPG를 드래그하거나 클릭하여 업로드</div>
+              <div style={{ fontSize: "11px", color: "#999", marginTop: "4px" }}>AI가 자동으로 인식하여 확정서 폼에 채워줍니다 (티옵시간만 추가 입력)</div>
+            </div>
+          )}
+        </div>
+        {jpgUploadMsg && (
+          <div style={{
+            marginTop: "8px", padding: "10px 14px", borderRadius: "8px", fontSize: "12px", fontWeight: "600",
+            background: jpgUploadMsg.startsWith("✅") ? "#e8f5e9" : jpgUploadMsg.startsWith("❌") ? "#ffebee" : "#fff3e0",
+            color: jpgUploadMsg.startsWith("✅") ? "#2e7d32" : jpgUploadMsg.startsWith("❌") ? "#c62828" : "#e65100",
+          }}>{jpgUploadMsg}</div>
+        )}
+      </div>
+
+      {/* Basic Info */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>기본 정보</legend>
+        <div style={gridStyle}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>상품명</label>
+            <input style={inputStyle} value={confirm.productName} onChange={(e) => updateConfirm("productName", e.target.value)} placeholder="[일본 나리타] 이타코 후지야 골프&관광&쇼핑" />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>담당자</label>
+            <div style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+              {[["최진우 대표 1533-3160 / 010-5897-1053", "최진우"], ["최인영 대표 010-5340-4980", "최인영"]].map(([val, short]) => (
+                <button key={val} onClick={() => updateConfirm("contactName", val)} style={{
+                  padding: "3px 10px", fontSize: "10px", borderRadius: "4px", cursor: "pointer",
+                  border: `1px solid ${confirm.contactName === val ? COLORS.accent : "#ddd"}`,
+                  background: confirm.contactName === val ? COLORS.accentLight : "#fff",
+                  color: confirm.contactName === val ? COLORS.accent : "#888",
+                  fontWeight: confirm.contactName === val ? "700" : "400",
+                }}>{short}</button>
+              ))}
+            </div>
+            <input style={inputStyle} value={confirm.contactName} onChange={(e) => updateConfirm("contactName", e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>출발일</label>
+              <input type="date" style={inputStyle} value={confirm.startDate || ""} onChange={(e) => applyConfirmDates(e.target.value, confirm.nights || "3박4일")} />
+            </div>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>여행 일수</label>
+              <select style={{ ...inputStyle, cursor: "pointer" }} value={confirm.nights || "3박4일"} onChange={(e) => applyConfirmDates(confirm.startDate || "", e.target.value)}>
+                {CONFIRM_NIGHTS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>인원</label>
+            <input style={inputStyle} value={confirm.people} onChange={(e) => updateConfirm("people", e.target.value)} placeholder="2인" />
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>호텔</label>
+              <input style={inputStyle} value={confirm.hotelInfo} onChange={(e) => updateConfirm("hotelInfo", e.target.value)} placeholder="후지야 호텔(FUJIYA HOTEL) - 2인1실 기준" />
+            </div>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>항공</label>
+              <input style={inputStyle} value={confirm.airline} onChange={(e) => updateConfirm("airline", e.target.value)} placeholder="에어서울 항공" />
+            </div>
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>포함사항 (한 줄에 하나씩)</label>
+            <textarea style={{ ...inputStyle, height: "80px", resize: "vertical" }} value={confirm.included} onChange={(e) => updateConfirm("included", e.target.value)} placeholder={"왕복항공요금\n호텔숙박\n일정 내 식사(조/중/석식)\n그린피, 카트비\n송영비용\n여행자보험"} />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>불포함 (한 줄에 하나씩)</label>
+            <textarea style={{ ...inputStyle, height: "50px", resize: "vertical" }} value={confirm.excluded} onChange={(e) => updateConfirm("excluded", e.target.value)} placeholder={"기타 개인비용\n캐디피"} />
+          </div>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>REMARK</label>
+            <textarea style={{ ...inputStyle, height: "80px", resize: "vertical" }} value={confirm.remark} onChange={(e) => updateConfirm("remark", e.target.value)} placeholder="각 줄은 줄바꿈으로 구분" />
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Picket & Local contacts */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>현지 정보</legend>
+        <div style={gridStyle}>
+          <div style={fieldStyle}>
+            <label style={labelStyle}>피켓미팅명 (공항)</label>
+            <input style={inputStyle} value={confirm.picketName} onChange={(e) => updateConfirm("picketName", e.target.value)} placeholder="홍길동 / HONG GIL DONG" />
+          </div>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <label style={{ fontSize: "12px", color: "#555" }}>가이드 동행</label>
+            <input type="checkbox" checked={confirm.hasGuide} onChange={(e) => updateConfirm("hasGuide", e.target.checked)} />
+          </div>
+          {confirm.hasGuide && (
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>가이드명</label>
+                <input style={inputStyle} value={confirm.guideName} onChange={(e) => updateConfirm("guideName", e.target.value)} />
+              </div>
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>가이드 연락처</label>
+                <input style={inputStyle} value={confirm.guidePhone} onChange={(e) => updateConfirm("guidePhone", e.target.value)} />
+              </div>
+            </div>
+          )}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>기사명</label>
+              <input style={inputStyle} value={confirm.driverName} onChange={(e) => updateConfirm("driverName", e.target.value)} />
+            </div>
+            <div style={{ ...fieldStyle, flex: 1 }}>
+              <label style={labelStyle}>기사 연락처</label>
+              <input style={inputStyle} value={confirm.driverPhone} onChange={(e) => updateConfirm("driverPhone", e.target.value)} />
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* Visit Japan */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>비짓재팬 (일본 전용)</legend>
+        <div style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+          <label style={{ fontSize: "12px", color: "#555" }}>비짓재팬 표시</label>
+          <input type="checkbox" checked={confirm.visitJapan} onChange={(e) => updateConfirm("visitJapan", e.target.checked)} />
+        </div>
+        {confirm.visitJapan && (
+          <div style={gridStyle}>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>호텔 영문명</label>
+                <input style={inputStyle} value={confirm.hotelNameEn} onChange={(e) => updateConfirm("hotelNameEn", e.target.value)} placeholder="Itako Fujiya Hotel" />
+              </div>
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>호텔 전화번호</label>
+                <input style={inputStyle} value={confirm.hotelPhoneEn} onChange={(e) => updateConfirm("hotelPhoneEn", e.target.value)} placeholder="+81 0299-94-2662" />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div style={{ ...fieldStyle, flex: 2 }}>
+                <label style={labelStyle}>호텔 영문 주소</label>
+                <input style={inputStyle} value={confirm.hotelAddressEn} onChange={(e) => updateConfirm("hotelAddressEn", e.target.value)} placeholder="102 Itako, Itako-shi, Ibaraki" />
+              </div>
+              <div style={{ ...fieldStyle, flex: 1 }}>
+                <label style={labelStyle}>우편번호</label>
+                <input style={inputStyle} value={confirm.hotelZip} onChange={(e) => updateConfirm("hotelZip", e.target.value)} placeholder="311-2424" />
+              </div>
+            </div>
+          </div>
+        )}
+      </fieldset>
+
+      {/* Flight Info */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>항공 정보</legend>
+        {confirm.flights.map((f, fi) => (
+          <div key={fi} style={{ marginBottom: "10px", padding: "10px", background: "#f8faf8", borderRadius: "6px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: COLORS.accent, marginBottom: "6px" }}>{fi === 0 ? "가는편" : "오는편"}</div>
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "80px" }}><label style={{ ...labelStyle, fontSize: "10px" }}>편명</label><input style={inputStyle} value={f.name} onChange={(e) => updateConfirmFlight(fi, "name", e.target.value)} placeholder="RS 707" /></div>
+              <div style={{ flex: 1, minWidth: "80px" }}><label style={{ ...labelStyle, fontSize: "10px" }}>출발공항</label><input style={inputStyle} value={f.airport} onChange={(e) => updateConfirmFlight(fi, "airport", e.target.value)} placeholder="인천공항 제2터미널" /></div>
+              <div style={{ flex: 1, minWidth: "80px" }}><label style={{ ...labelStyle, fontSize: "10px" }}>체크인카운터</label><input style={inputStyle} value={f.counter} onChange={(e) => updateConfirmFlight(fi, "counter", e.target.value)} /></div>
+              <div style={{ flex: 1, minWidth: "80px" }}><label style={{ ...labelStyle, fontSize: "10px" }}>출발</label><input style={inputStyle} value={f.depCity} onChange={(e) => updateConfirmFlight(fi, "depCity", e.target.value)} /><input style={{ ...inputStyle, marginTop: "4px" }} value={f.depTime} onChange={(e) => updateConfirmFlight(fi, "depTime", e.target.value)} placeholder="13:10" /></div>
+              <div style={{ flex: 1, minWidth: "80px" }}><label style={{ ...labelStyle, fontSize: "10px" }}>도착</label><input style={inputStyle} value={f.arrCity} onChange={(e) => updateConfirmFlight(fi, "arrCity", e.target.value)} /><input style={{ ...inputStyle, marginTop: "4px" }} value={f.arrTime} onChange={(e) => updateConfirmFlight(fi, "arrTime", e.target.value)} placeholder="15:50" /></div>
+            </div>
+          </div>
+        ))}
+      </fieldset>
+
+      {/* Daily Schedule */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>확정 일정표</legend>
+        {confirm.days.map((day, di) => (
+          <div key={di} style={{ marginBottom: "14px", padding: "10px", background: "#f8faf8", borderRadius: "8px", border: "1px solid #e0e8e0" }}>
+            <div style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+              <span style={{ fontSize: "12px", fontWeight: "700", color: COLORS.accent }}>{day.label}</span>
+              <span style={{ fontSize: "11px", color: "#888" }}>{day.date}</span>
+              <div style={{ marginLeft: "auto", display: "flex", gap: "4px", alignItems: "center", fontSize: "10px", color: "#888" }}>
+                <span>조</span><input style={{ ...inputStyle, width: "60px", fontSize: "11px", padding: "4px 6px" }} value={day.mealB} onChange={(e) => updateConfirmDay(di, "mealB", e.target.value)} placeholder="한 식" />
+                <span>중</span><input style={{ ...inputStyle, width: "60px", fontSize: "11px", padding: "4px 6px" }} value={day.mealL} onChange={(e) => updateConfirmDay(di, "mealL", e.target.value)} placeholder="클럽식" />
+                <span>석</span><input style={{ ...inputStyle, width: "60px", fontSize: "11px", padding: "4px 6px" }} value={day.mealD} onChange={(e) => updateConfirmDay(di, "mealD", e.target.value)} placeholder="한 식" />
+              </div>
+              <button onClick={() => removeConfirmDay(di)} style={{ ...smallBtnStyle, background: "#fee" }}>삭제</button>
+            </div>
+            <div style={fieldStyle}>
+              <label style={{ ...labelStyle, fontSize: "10px" }}>호텔</label>
+              <input style={{ ...inputStyle, fontSize: "11px" }} value={day.hotel} onChange={(e) => updateConfirmDay(di, "hotel", e.target.value)} placeholder="호텔: 이타코 후지야 호텔" />
+            </div>
+            {day.items.map((item, ii) => (
+              <div key={ii} draggable onDragStart={onDragStart("cfDayItem", ii, di)} onDragOver={onDragOver("cfDayItem", ii, di)} onDrop={onDrop("cfDayItem", ii, di)} onDragEnd={onDragEnd} style={{
+                display: "flex", gap: "4px", marginBottom: "4px", alignItems: "center",
+                background: item.highlight ? "#e3f2fd" : "transparent",
+                borderRadius: item.highlight ? "6px" : "0",
+                padding: item.highlight ? "6px 4px" : "0",
+                border: item.highlight ? "1px solid #90caf9" : "none",
+                ...dropHighlight("cfDayItem", ii, di),
+              }}>
+                <span style={dragHandleStyle}>☰</span>
+                <input style={{ ...inputStyle, width: "60px", fontSize: "11px" }} value={item.place} onChange={(e) => updateConfirmDayItem(di, ii, "place", e.target.value)} placeholder="장소" />
+                <input style={{ ...inputStyle, width: "60px", fontSize: "11px" }} value={item.transport} onChange={(e) => updateConfirmDayItem(di, ii, "transport", e.target.value)} placeholder="교통" />
+                {item.highlight ? (
+                  <input style={{ ...inputStyle, width: "65px", fontSize: "12px", fontWeight: "800", color: "#1565c0", background: "#bbdefb", border: "2px solid #1565c0", textAlign: "center" }} value={item.time} onChange={(e) => updateConfirmDayItem(di, ii, "time", e.target.value)} placeholder="⛳ 티옵" />
+                ) : (
+                  <input style={{ ...inputStyle, width: "50px", fontSize: "11px" }} value={item.time} onChange={(e) => updateConfirmDayItem(di, ii, "time", e.target.value)} placeholder="시간" />
+                )}
+                <input style={{ ...inputStyle, flex: 1, fontSize: "11px", fontWeight: item.highlight ? "700" : "400" }} value={item.desc} onChange={(e) => updateConfirmDayItem(di, ii, "desc", e.target.value)} placeholder="일정 내용" />
+                <label style={{ fontSize: "10px", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "2px", color: item.highlight ? "#1565c0" : "#888" }}>
+                  <input type="checkbox" checked={!!item.highlight} onChange={(e) => updateConfirmDayItem(di, ii, "highlight", e.target.checked)} />골프
+                </label>
+                <button onClick={() => removeConfirmDayItem(di, ii)} style={smallBtnStyle}>✕</button>
+              </div>
+            ))}
+            <button onClick={() => addConfirmDayItem(di)} style={{ ...addBtnStyle, fontSize: "11px" }}>+ 일정 추가</button>
+          </div>
+        ))}
+        <button onClick={addConfirmDay} style={{ ...addBtnStyle, background: COLORS.primary, color: "#fff" }}>+ 일차 추가</button>
+      </fieldset>
+
+      {/* Checklist */}
+      <fieldset style={fieldsetStyle}>
+        <legend style={legendStyle}>여행전 필수 체크 리스트</legend>
+        {confirm.checklist.map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px" }}>
+            <textarea style={{ ...inputStyle, flex: 1, height: "40px", resize: "vertical", fontSize: "11px" }} value={item} onChange={(e) => setConfirm(p => ({ ...p, checklist: p.checklist.map((c, ci) => ci === i ? e.target.value : c) }))} />
+            <button onClick={() => setConfirm(p => ({ ...p, checklist: p.checklist.filter((_, ci) => ci !== i) }))} style={smallBtnStyle}>✕</button>
+          </div>
+        ))}
+        <button onClick={() => setConfirm(p => ({ ...p, checklist: [...p.checklist, ""] }))} style={addBtnStyle}>+ 항목 추가</button>
+      </fieldset>
+    </div>
+  );
+
+
+    // === CONFIRMATION PREVIEW ===
+  const cTd = (opts = {}) => ({ padding: "6px 10px", border: "1px solid #999", fontSize: "12px", verticalAlign: "middle", ...opts });
+  const cTh = (opts = {}) => ({ ...cTd(opts), background: "#dbe9d8", fontWeight: "700", textAlign: "center", fontSize: "11px", whiteSpace: "nowrap" });
+
+  const renderConfirmPreview = () => {
+    const sectionTitle = (text) => ({
+      fontSize: "11px", fontWeight: "700", color: COLORS.accent, letterSpacing: "3px",
+      padding: compact ? "2px 0 1px" : "4px 0 3px", borderBottom: `2px solid ${COLORS.accent}`, marginBottom: "0",
+    });
+    const infoLabel = { fontSize: "11px", color: "#555", fontWeight: "400", letterSpacing: "1px" };
+    const infoValue = { fontSize: "13px", color: "#111", fontWeight: "400" };
+
+    return (
+    <div ref={confirmRef} data-confirm-preview="true" style={{ background: "#fff", width: "780px", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", margin: "0 auto", boxSizing: "border-box" }}>
+      {renderCompanyHeader()}
+
+      {/* Title */}
+      <div style={{ padding: cPadTitle }}>
+        <div style={{ fontSize: "16px", fontWeight: "800", color: COLORS.accent }}>{confirm.productName || "여행 확정서"}</div>
+        <div style={{ fontSize: "11px", color: "#888", letterSpacing: "2px", marginTop: "2px" }}>TRAVEL CONFIRMATION</div>
+      </div>
+
+      {/* Info Grid */}
+      <div style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: "table", width: "100%", padding: cInfoPad }}>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>기간</div>
+            <div style={{ ...infoValue, marginTop: "2px" }}>{getConfirmDateRange()}</div>
+          </div>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>담당</div>
+            <div style={{ ...infoValue, marginTop: "2px" }}>{confirm.contactName}</div>
+          </div>
+        </div>
+        <div style={{ display: "table", width: "100%", padding: cInfoPad }}>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>호텔</div>
+            <div style={{ ...infoValue, marginTop: "2px" }}>{confirm.hotelInfo}</div>
+          </div>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>항공</div>
+            <div style={{ ...infoValue, color: COLORS.airlineTxt, marginTop: "2px" }}>{confirm.airline}</div>
+          </div>
+        </div>
+        <div style={{ display: "table", width: "100%", padding: cInfoPadLast }}>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            <div style={infoLabel}>인원</div>
+            <div style={{ ...infoValue, marginTop: "2px" }}>{confirm.people}</div>
+          </div>
+          <div style={{ display: "table-cell", width: "50%", paddingRight: "16px" }}>
+            {(confirm.picketName || confirm.guideName || confirm.driverName) && (
+              <div>
+                <div style={infoLabel}>{confirm.hasGuide && confirm.guideName ? "가이드 / 기사" : "피켓미팅"}</div>
+                <div style={{ ...infoValue, marginTop: "2px" }}>
+                  {confirm.picketName && <span>{confirm.picketName}</span>}
+                  {confirm.hasGuide && confirm.guideName && <span>{confirm.guideName} {confirm.guidePhone}</span>}
+                  {confirm.driverName && <span style={{ marginLeft: confirm.guideName ? "8px" : "0" }}>기사: {confirm.driverName} {confirm.driverPhone}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Visit Japan */}
+      {confirm.visitJapan && (
+        <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+          <div style={sectionTitle()}>비짓재팬 (VISIT JAPAN)</div>
+          <div style={{ fontSize: "10px", color: "#c0392b", marginTop: "4px", marginBottom: "4px" }}>* 입국 전 사전작성 필수 / QR코드는 꼭 캡쳐 후 사진첩 보관 *</div>
+          <div style={{ display: "table", width: "100%", fontSize: "12px" }}>
+            <div style={{ display: "table-row" }}>
+              <div style={{ display: "table-cell", padding: cItemPad, color: "#555", width: "80px" }}>호텔명</div>
+              <div style={{ display: "table-cell", padding: cItemPad, fontWeight: "600" }}>{confirm.hotelNameEn}</div>
+            </div>
+            <div style={{ display: "table-row" }}>
+              <div style={{ display: "table-cell", padding: cItemPad, color: "#555" }}>연락처</div>
+              <div style={{ display: "table-cell", padding: cItemPad }}>{confirm.hotelPhoneEn}</div>
+            </div>
+            <div style={{ display: "table-row" }}>
+              <div style={{ display: "table-cell", padding: cItemPad, color: "#555" }}>주소</div>
+              <div style={{ display: "table-cell", padding: cItemPad }}>{confirm.hotelAddressEn}{confirm.hotelZip ? ` (〒${confirm.hotelZip})` : ""}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Flight Info */}
+      <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={sectionTitle()}>항공 정보</div>
+        <div style={{ marginTop: "4px" }}>
+          {confirm.flights.map((f, fi) => (
+            <div key={fi} style={{ display: "table", width: "100%", fontSize: "12px", marginBottom: "2px" }}>
+              <div style={{ display: "table-cell", width: "90px", fontWeight: "700", color: COLORS.accent, padding: cItemPad }}>{f.name}</div>
+              <div style={{ display: "table-cell", padding: cItemPad }}>
+                <span>{f.depCity} <span style={{ fontWeight: "700" }}>{f.depTime}</span></span>
+                <span style={{ margin: "0 8px", color: "#aaa" }}>→</span>
+                <span>{f.arrCity} <span style={{ fontWeight: "700" }}>{f.arrTime}</span></span>
+                {f.airport && <span style={{ color: "#888", marginLeft: "10px", fontSize: "11px" }}>({f.airport}{f.counter ? ` / ${f.counter}` : ""})</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Included / Excluded */}
+      <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+        <div style={{ display: "table", width: "100%" }}>
+          <div style={{ display: "table-cell", width: "66%", verticalAlign: "top" }}>
+            <div style={sectionTitle()}>포함사항</div>
+            <div style={{ padding: cSecPad }}>
+              {confirm.included.split("\n").map((item, i) => item.trim() && (
+                <div key={i} style={{ fontSize: "13px", color: "#111", padding: compact ? "0" : "1px 0", lineHeight: cLineH }}>• {item.trim()}</div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "table-cell", width: "34%", verticalAlign: "top", paddingLeft: "24px" }}>
+            <div style={sectionTitle()}>불포함</div>
+            <div style={{ padding: cSecPad }}>
+              {confirm.excluded.split("\n").map((item, i) => item.trim() && (
+                <div key={i} style={{ fontSize: "13px", color: "#111", padding: compact ? "0" : "1px 0", lineHeight: cLineH }}>• {item.trim()}</div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Remark */}
+      {confirm.remark && (
+        <div style={{ padding: cPad, borderBottom: `1px solid ${COLORS.border}` }}>
+          <div style={sectionTitle()}>REMARK</div>
+          <div style={{ padding: cRemarkPad }}>
+            {confirm.remark.split("\n").map((line, i) => (
+              <div key={i} style={{ fontSize: "13px", color: COLORS.remarkTxt, padding: compact ? "1px 0" : "2px 0", lineHeight: cLineHR }}>• {parseColorText(line)}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Itinerary */}
+      <div style={{ padding: cPadLg }}>
+        <div style={{ ...sectionTitle(), marginBottom: "0" }}>확정 일정표</div>
+        {/* Column labels */}
+        <div style={{ display: "table", width: "100%", borderBottom: `1px solid ${COLORS.border}`, padding: cRemarkPad }}>
+          <div style={{ display: "table-cell", width: "70px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px", verticalAlign: "middle" }}>날짜</div>
+          <div style={{ display: "table-cell", verticalAlign: "middle", paddingLeft: "16px" }}>
+            <div style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+              <div style={{ display: "table-cell", width: "55px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>장소</div>
+              <div style={{ display: "table-cell", width: "55px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>교통</div>
+              <div style={{ display: "table-cell", width: "16px" }}></div>
+              <div style={{ display: "table-cell", width: "50px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>시간</div>
+              <div style={{ display: "table-cell", paddingLeft: "8px", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px" }}>일정</div>
+            </div>
+          </div>
+          <div style={{ display: "table-cell", width: "65px", textAlign: "center", fontSize: "10px", color: COLORS.labelColor, letterSpacing: "1px", verticalAlign: "middle" }}>식사</div>
+        </div>
+        {confirm.days.map((day, di) => (
+          <div key={di} style={{ marginBottom: "0", borderBottom: `1px solid ${COLORS.border}` }}>
+            <div style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+              {/* Day label */}
+              <div style={{ width: "70px", textAlign: "center", verticalAlign: "middle", padding: cDayPad, borderRight: `1px solid ${COLORS.border}`, display: "table-cell" }}>
+                <div style={{ display: "inline-block", background: COLORS.accent, color: "#fff", padding: "4px 12px", borderRadius: "3px", fontSize: "12px", fontWeight: "800", whiteSpace: "nowrap" }}>
+                  {day.label}
+                </div>
+                {day.date && <div style={{ fontSize: "11px", color: COLORS.labelColor, marginTop: "4px" }}>{day.date}</div>}
+              </div>
+              {/* Items */}
+              <div style={{ display: "table-cell", verticalAlign: "top", padding: cCellPad }}>
+                {day.items.map((item, ii) => (
+                  <div key={ii} style={{ display: "table", width: "100%", tableLayout: "fixed" }}>
+                    <div style={{ display: "table-cell", width: "55px", fontSize: "10px", color: COLORS.accent, fontWeight: "700", textAlign: "center", verticalAlign: "middle", padding: cItemPad, whiteSpace: "nowrap" }}>{item.place}</div>
+                    <div style={{ display: "table-cell", width: "55px", fontSize: "12px", color: COLORS.labelColor, textAlign: "center", verticalAlign: "middle", padding: cItemPad }}>{item.transport}</div>
+                    <div style={{ display: "table-cell", width: "16px", verticalAlign: "middle" }}><div style={{ width: "1px", height: "14px", background: COLORS.border, margin: "0 auto" }} /></div>
+                    <div style={{ display: "table-cell", width: "50px", fontSize: "12px", color: "#111", fontWeight: "400", textAlign: "center", verticalAlign: "middle", padding: cItemPad }}>{item.time}</div>
+                    <div style={{ display: "table-cell", fontSize: "12px", color: item.highlight ? COLORS.highlightTxt : "#111", fontWeight: item.highlight ? "700" : "400", paddingLeft: "8px", verticalAlign: "middle", padding: compact ? "1px 0 1px 8px" : "3px 0 3px 8px" }}>
+                      {item.highlight && <span style={{ color: "#c0392b" }}>⛳ </span>}{parseColorText(item.desc)}
+                    </div>
+                  </div>
+                ))}
+                {day.hotel && (
+                  <div style={{ padding: cHotelPad, marginTop: "2px", borderTop: `1px dashed ${COLORS.border}` }}>
+                    <span style={{ display: "inline-block", fontSize: "10px", color: "#fff", background: COLORS.gold, padding: "2px 8px", borderRadius: "2px", fontWeight: "700", letterSpacing: "1px", verticalAlign: "middle" }}>HOTEL</span>
+                    <span style={{ fontSize: "12px", color: "#111", fontWeight: "400", paddingLeft: "8px", verticalAlign: "middle" }}>{day.hotel}</span>
+                  </div>
+                )}
+              </div>
+              {/* Meals */}
+              <div style={{ width: "65px", display: "table-cell", verticalAlign: "middle", textAlign: "center", padding: "6px 2px", borderLeft: `1px solid ${COLORS.border}`, fontSize: "11px", color: "#111", lineHeight: cLineHR }}>
+                {[day.mealB && `조: ${day.mealB}`, day.mealL && `중: ${day.mealL}`, day.mealD && `석: ${day.mealD}`].filter(Boolean).map((m, mi) => <div key={mi} style={{ whiteSpace: "nowrap" }}>{m}</div>)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Checklist */}
+      {confirm.checklist.length > 0 && (
+        <div style={{ padding: cPad, borderTop: `1px solid ${COLORS.border}` }}>
+          <div style={sectionTitle()}>여행전 필수 체크 리스트</div>
+          <div style={{ padding: cRemarkPad }}>
+            {confirm.checklist.map((item, i) => (
+              <div key={i} style={{ fontSize: "12px", color: "#333", padding: compact ? "1px 0" : "2px 0", lineHeight: cLineHR }}>◆ {item}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{ borderTop: `2px solid ${COLORS.accent}`, padding: cFooterPad, textAlign: "center" }}>
+        <div style={{ color: "#333", fontSize: "10px", letterSpacing: "2px" }}>
+          (주)초이스골프 | TEL: 1533-3160 | www.chctour.com
+        </div>
+      </div>
+    </div>
+    );
+  };
+
+
+  const INVOICE_NIGHTS = ["2박3일","3박4일","4박5일","5박6일","6박7일","7박8일"];
+  const invoiceReturnDate = (() => {
+    if (!invoice.departureDate || !invoice.nights) return "";
+    const m = invoice.nights.match(/(\d+)박/);
+    if (!m) return "";
+    const d = new Date(invoice.departureDate + "T00:00:00");
+    d.setDate(d.getDate() + parseInt(m[1]) + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const invFormatDate = (d) => {
+    if (!d) return "";
+    const dt = new Date(d + "T00:00:00");
+    return `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일`;
+  };
+  const invDayName = (d) => {
+    if (!d) return "";
+    return ["일","월","화","수","목","금","토"][new Date(d + "T00:00:00").getDay()];
+  };
+
+  const renderInvoiceForm = () => {
+    const fieldStyle = { width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "13px", fontFamily: "inherit", boxSizing: "border-box" };
+    const smFieldStyle = { ...fieldStyle, padding: "6px 8px", fontSize: "12px" };
+    const labelStyle = { fontSize: "11px", fontWeight: "700", color: COLORS.accent, marginBottom: "4px", display: "block" };
+    const cardStyle = { background: "#fff", borderRadius: "8px", padding: "16px", marginBottom: "12px", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" };
+    const rowStyle = { display: "flex", gap: "10px", marginBottom: "8px" };
+    const sectionHeader = (icon, title) => <div style={{ fontSize: "14px", fontWeight: "800", color: COLORS.accent, marginBottom: "12px", borderBottom: `2px solid ${COLORS.accent}`, paddingBottom: "6px" }}>{icon} {title}</div>;
+    const isPerson = invoice.invMode === "person";
+    return (
+      <div>
+        {/* 모드 선택 */}
+        <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
+          {[
+            { key: "person", icon: "👤", label: "고객별 청구", desc: "이름별로 상품가/예약금/잔금 입력" },
+            { key: "item", icon: "📦", label: "항목별 청구", desc: "상품/수수료 단위 + 기입금 차감" },
+          ].map(m => (
+            <button key={m.key} onClick={() => updateInvoice("invMode", m.key)} style={{
+              flex: 1, padding: "14px 12px", border: invoice.invMode === m.key ? `2px solid ${COLORS.accent}` : "2px solid #ddd",
+              borderRadius: "10px", background: invoice.invMode === m.key ? COLORS.accentLight : "#fff",
+              cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+            }}>
+              <div style={{ fontSize: "18px" }}>{m.icon}</div>
+              <div style={{ fontSize: "14px", fontWeight: "800", color: invoice.invMode === m.key ? COLORS.accent : "#666", marginTop: "4px" }}>{m.label}</div>
+              <div style={{ fontSize: "10px", color: "#999", marginTop: "2px" }}>{m.desc}</div>
+            </button>
+          ))}
+        </div>
+
+        {/* 예약정보 */}
+        <div style={cardStyle}>
+          {sectionHeader("📋", "예약정보")}
+          <div style={rowStyle}>
+            <div style={{ flex: 2 }}><label style={labelStyle}>고객명</label><input style={fieldStyle} value={invoice.repName} onChange={e => updateInvoice("repName", e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>담당자</label><input style={fieldStyle} value={invoice.contactName} onChange={e => updateInvoice("contactName", e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>연락처</label><input style={fieldStyle} value={invoice.contactPhone} onChange={e => updateInvoice("contactPhone", e.target.value)} /></div>
+          </div>
+          <div style={rowStyle}>
+            <div style={{ flex: 2 }}><label style={labelStyle}>상품명</label><input style={fieldStyle} value={invoice.productName} onChange={e => updateInvoice("productName", e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>인원</label><input style={fieldStyle} value={invoice.totalPersons} onChange={e => updateInvoice("totalPersons", e.target.value)} /></div>
+          </div>
+          <div style={rowStyle}>
+            <div style={{ flex: 1 }}><label style={labelStyle}>출발일</label><input type="date" style={fieldStyle} value={invoice.departureDate} onChange={e => updateInvoice("departureDate", e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>박수</label>
+              <select style={fieldStyle} value={invoice.nights} onChange={e => updateInvoice("nights", e.target.value)}>
+                {INVOICE_NIGHTS.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* ===== 고객별 모드 ===== */}
+        {isPerson && (
+          <div style={cardStyle}>
+            {sectionHeader("👤", "고객별 요금")}
+            <div style={rowStyle}>
+              <div style={{ flex: 1 }}><label style={labelStyle}>기본 상품가</label><input style={smFieldStyle} value={invoice.defaultPrice} onChange={e => updateInvoice("defaultPrice", autoFmtPrice(e.target.value))} /></div>
+              <div style={{ flex: 1 }}><label style={labelStyle}>기본 예약금</label><input style={smFieldStyle} value={invoice.defaultDeposit} onChange={e => updateInvoice("defaultDeposit", autoFmtPrice(e.target.value))} /></div>
+              <div style={{ display: "flex", alignItems: "flex-end" }}><button onClick={applyDefaults} style={{ padding: "6px 12px", background: COLORS.accent, color: "#fff", border: "none", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>빈칸 적용</button></div>
+            </div>
+            <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+              <span style={{ width: "18px", textAlign: "center" }}>No</span>
+              <span style={{ flex: 2 }}>고객명</span>
+              <span style={{ flex: 1, textAlign: "right" }}>상품가</span>
+              <span style={{ flex: 1, textAlign: "right" }}>예약금</span>
+              <span style={{ flex: 1, textAlign: "right" }}>중도금</span>
+              <span style={{ width: "70px", textAlign: "right", color: COLORS.priceTxt, fontWeight: "700" }}>잔금</span>
+              <span style={{ width: "22px" }} />
+            </div>
+            {invoice.customers.map((c, i) => {
+              const pr = parseNum(c.price || invoice.defaultPrice); const dp = parseNum(c.deposit); const md = parseNum(c.midPay);
+              const bl = Math.max(0, pr - dp - md);
+              return (
+                <div key={i}>
+                  {i > 0 && (
+                    <div style={{ display: "flex", justifyContent: "center", margin: "1px 0" }}>
+                      <button onClick={() => updateInvoiceCustomer(i, "linked", !c.linked)} style={{
+                        background: c.linked ? "#2196f3" : "#eee", color: c.linked ? "#fff" : "#bbb",
+                        border: "none", borderRadius: "10px", padding: "1px 10px", fontSize: "10px",
+                        cursor: "pointer", fontFamily: "inherit", fontWeight: "700",
+                      }}>{c.linked ? "🔗 같이 입금" : "🔗 연결"}</button>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: "5px", marginBottom: "2px", alignItems: "center", background: c.linked ? "#e3f2fd" : "transparent", padding: c.linked ? "4px 2px" : "0", borderRadius: "4px" }}>
+                    <span style={{ width: "18px", fontSize: "11px", fontWeight: "700", color: c.linked ? "#1565c0" : COLORS.accent, textAlign: "center" }}>{i + 1}</span>
+                    <input style={{ ...smFieldStyle, flex: 2 }} value={c.name} onChange={e => updateInvoiceCustomer(i, "name", e.target.value)} placeholder="고객명" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={c.price} onChange={handleCustFieldInput(i, "price")} placeholder={invoice.defaultPrice} />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right", background: "#f0fdf4" }} value={c.deposit} onChange={handleCustFieldInput(i, "deposit")} placeholder="예약금" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right", background: "#f0fdf4" }} value={c.midPay} onChange={handleCustFieldInput(i, "midPay")} placeholder="중도금" />
+                    <span style={{ width: "70px", textAlign: "right", fontSize: "12px", fontWeight: "800", color: bl > 0 ? COLORS.priceTxt : "#27ae60", flexShrink: 0 }}>₩{fmtNum(bl)}</span>
+                    {invoice.customers.length > 1 ? <button onClick={() => removeInvoiceCustomer(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button> : <span style={{ width: "22px" }} />}
+                  </div>
+                </div>
+              );
+            })}
+            <button onClick={addInvoiceCustomer} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "6px" }}>+ 고객 추가</button>
+            <div style={{ marginTop: "10px", padding: "10px", background: COLORS.accentLight, borderRadius: "6px", fontSize: "12px", lineHeight: "1.8" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}><span>상품가 합계</span><span>₩ {fmtNum(invCustTotalPrice)}</span></div>
+              {invCustShowDep && <div style={{ display: "flex", justifyContent: "space-between", color: "#27ae60" }}><span>예약금 합계</span><span>₩ {fmtNum(invCustTotalDep)}</span></div>}
+              {invCustShowMid && <div style={{ display: "flex", justifyContent: "space-between", color: "#27ae60" }}><span>중도금 합계</span><span>₩ {fmtNum(invCustTotalMid)}</span></div>}
+              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", borderTop: `1px solid ${COLORS.border}`, paddingTop: "4px", marginTop: "4px", color: COLORS.priceTxt }}>
+                <span>잔금 합계</span><span>₩ {fmtNum(invCustTotalBal)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== 항목별 모드 ===== */}
+        {!isPerson && (
+          <>
+            <div style={cardStyle}>
+              {sectionHeader("📦", "요금 항목")}
+              <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+                <span style={{ width: "18px", textAlign: "center" }}>No</span>
+                <span style={{ flex: 3 }}>상품명</span>
+                <span style={{ flex: 1, textAlign: "right" }}>단가(1인)</span>
+                <span style={{ width: "40px", textAlign: "center" }}>인원</span>
+                <span style={{ width: "80px", textAlign: "right" }}>TOTAL</span>
+                <span style={{ width: "22px" }} />
+              </div>
+              {invoice.items.map((it, i) => {
+                const total = parseNum(it.unitPrice) * (parseNum(it.qty) || 1);
+                return (
+                  <div key={i} style={{ display: "flex", gap: "5px", marginBottom: "4px", alignItems: "center" }}>
+                    <span style={{ width: "18px", fontSize: "11px", fontWeight: "700", color: COLORS.accent, textAlign: "center" }}>{i + 1}</span>
+                    <input style={{ ...smFieldStyle, flex: 3 }} value={it.name} onChange={e => updateInvoiceItem(i, "name", e.target.value)} placeholder="상품명" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={it.unitPrice} onChange={handleItemFieldInput(i, "unitPrice")} placeholder="단가" />
+                    <input style={{ ...smFieldStyle, width: "40px", textAlign: "center", flexShrink: 0 }} value={it.qty} onChange={e => updateInvoiceItem(i, "qty", e.target.value)} placeholder="1" />
+                    <span style={{ width: "80px", textAlign: "right", fontSize: "11px", fontWeight: "700", color: "#333", flexShrink: 0 }}>₩{fmtNum(total)}</span>
+                    {invoice.items.length > 1 ? <button onClick={() => removeInvoiceItem(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button> : <span style={{ width: "22px" }} />}
+                  </div>
+                );
+              })}
+              <button onClick={addInvoiceItem} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "6px" }}>+ 항목 추가</button>
+            </div>
+            <div style={cardStyle}>
+              {sectionHeader("💳", "기입금 내역")}
+              <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>예약금, 중도금 등 이미 입금된 내역. 없으면 비워두세요.</div>
+              {invoice.payments.map((pm, i) => (
+                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px", alignItems: "center" }}>
+                  <input style={{ ...smFieldStyle, flex: 1 }} value={pm.label} onChange={e => updateInvoicePayment(i, "label", e.target.value)} placeholder="예약금 / 중도금 / ..." />
+                  <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={pm.amount} onChange={e => updateInvoicePayment(i, "amount", autoFmtPrice(e.target.value))} placeholder="금액" />
+                  <button onClick={() => removeInvoicePayment(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button>
+                </div>
+              ))}
+              <button onClick={addInvoicePayment} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "4px" }}>+ 입금 내역 추가</button>
+              <div style={{ marginTop: "10px", padding: "10px", background: COLORS.accentLight, borderRadius: "6px", fontSize: "12px", lineHeight: "1.8" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}><span>TOTAL 합계</span><span>₩ {fmtNum(invGrandTotal)}</span></div>
+                {invoice.payments.filter(pm => parseNum(pm.amount) > 0).map((pm, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", color: "#27ae60" }}><span>{pm.label || "기입금"}</span><span>- ₩ {fmtNum(parseNum(pm.amount))}</span></div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", borderTop: `1px solid ${COLORS.border}`, paddingTop: "4px", marginTop: "4px", color: COLORS.priceTxt }}>
+                  <span>잔금 요청</span><span>₩ {fmtNum(invBalance)}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* 기한 & 안내 */}
+        <div style={cardStyle}>
+          {sectionHeader("📅", "입금 안내")}
+          <div style={rowStyle}>
+            <div style={{ flex: 1 }}><label style={labelStyle}>입금 기한</label><input type="date" style={fieldStyle} value={invoice.dueDate} onChange={e => updateInvoice("dueDate", e.target.value)} /></div>
+            <div style={{ flex: 2 }}><label style={labelStyle}>안내 문구</label><input style={fieldStyle} value={invoice.dueMsg} onChange={e => updateInvoice("dueMsg", e.target.value)} /></div>
+          </div>
+        </div>
+
+        {/* 테이블 하단 안내문 */}
+        <div style={cardStyle}>
+          {sectionHeader("📝", "요금표 하단 안내문")}
+          {invoice.tableNotes.map((n, i) => (
+            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px" }}>
+              <input style={{ ...fieldStyle, flex: 1 }} value={n} onChange={e => updateInvoiceTableNote(i, e.target.value)} />
+              {invoice.tableNotes.length > 1 && <button onClick={() => removeInvoiceTableNote(i)} style={{ background: "#e74c3c", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>}
+            </div>
+          ))}
+          <button onClick={addInvoiceTableNote} style={{ marginTop: "4px", padding: "6px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 추가</button>
+        </div>
+
+        {/* 결제안내 */}
+        <div style={cardStyle}>
+          {sectionHeader("🏦", "결제안내")}
+          <div style={rowStyle}>
+            <div style={{ flex: 1 }}><label style={labelStyle}>입금은행</label><input style={fieldStyle} value={invoice.bankName} onChange={e => updateInvoice("bankName", e.target.value)} /></div>
+            <div style={{ flex: 2 }}><label style={labelStyle}>입금계좌</label><input style={fieldStyle} value={invoice.bankAccount} onChange={e => updateInvoice("bankAccount", e.target.value)} /></div>
+            <div style={{ flex: 1 }}><label style={labelStyle}>예금주</label><input style={fieldStyle} value={invoice.bankHolder} onChange={e => updateInvoice("bankHolder", e.target.value)} /></div>
+          </div>
+        </div>
+
+        {/* 취소 규정 */}
+        <div style={cardStyle}>
+          {sectionHeader("📌", "취소 및 환불 규정")}
+          {invoice.cancelPolicy.map((cp, i) => (
+            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px" }}>
+              <input style={{ ...fieldStyle, flex: 1 }} value={cp} onChange={e => updateInvoiceCancelPolicy(i, e.target.value)} />
+              {invoice.cancelPolicy.length > 1 && <button onClick={() => removeInvoiceCancelPolicy(i)} style={{ background: "#e74c3c", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>}
+            </div>
+          ))}
+          <button onClick={addInvoiceCancelPolicy} style={{ marginTop: "4px", padding: "6px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 항목 추가</button>
+        </div>
+      </div>
+    );
+  };
+
+  // === INVOICE PREVIEW ===
+  const renderInvoicePreview = () => {
+    const dateRange = invoice.departureDate ? `${invFormatDate(invoice.departureDate)} ~ ${invFormatDate(invoiceReturnDate)}` : "";
+    const isPerson = invoice.invMode === "person";
+    const hasPay = invTotalPaid > 0;
+    const thS = { padding: "8px 6px", fontWeight: "700", fontSize: "11px", borderBottom: "1px solid #999", borderRight: "1px solid #ddd", background: "#e8f0e8", textAlign: "center", color: "#333" };
+    const tdS = (align, bold) => ({ padding: "7px 6px", textAlign: align || "center", borderBottom: "1px solid #ddd", borderRight: "1px solid #eee", fontWeight: bold ? "700" : "400", fontSize: "12px", color: "#111" });
+    const labelTd = { padding: "6px 10px", fontWeight: "700", fontSize: "12px", background: "#f0f0f0", border: "1px solid #ccc", textAlign: "center", color: "#333", width: "80px" };
+    const valueTd = { padding: "6px 10px", fontSize: "12px", border: "1px solid #ccc", color: "#111" };
+    // person mode request amount
+    const personReqAmt = invCustTotalBal;
+
+    return (
+      <div ref={invoiceRef} style={{ background: "#fff", width: "780px", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", margin: "0 auto", boxSizing: "border-box" }}>
+        {renderCompanyHeader()}
+
+        <div style={{ padding: "14px 30px 8px" }}>
+          <div style={{ fontSize: "16px", fontWeight: "900", color: "#111", letterSpacing: "2px" }}>INVOICE</div>
+        </div>
+
+        {/* 예약정보 */}
+        <div style={{ padding: "4px 30px 10px" }}>
+          <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 예약정보</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+            <tbody>
+              <tr>
+                <td style={labelTd}>고객명</td>
+                <td style={valueTd}>{invoice.repName}</td>
+                <td style={labelTd}>담당자</td>
+                <td style={{ ...valueTd, textAlign: "center" }}>{invoice.contactName} {invoice.contactPhone}</td>
+              </tr>
+              <tr>
+                <td style={labelTd}>상품명</td>
+                <td style={valueTd}>{invoice.productName}</td>
+                <td style={labelTd}>인 원</td>
+                <td style={{ ...valueTd, textAlign: "center" }}>{invoice.totalPersons}인</td>
+              </tr>
+              <tr>
+                <td style={labelTd}>여행기간</td>
+                <td style={valueTd}>{dateRange}</td>
+                <td style={labelTd}>박 수</td>
+                <td style={{ ...valueTd, textAlign: "center" }}>{invoice.nights}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 요금정보 */}
+        <div style={{ padding: "6px 30px 6px" }}>
+          <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 요금정보</div>
+
+          {/* ===== 고객별 테이블 ===== */}
+          {isPerson && (
+            <>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thS, width: "36px" }}>NO</th>
+                  <th style={thS}>고객명</th>
+                  <th style={thS}>상품가</th>
+                  {invCustShowDep && <th style={thS}>예약금</th>}
+                  {invCustShowMid && <th style={thS}>중도금</th>}
+                  <th style={{ ...thS, background: "#fde8e8", color: "#c00" }}>잔금</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invCustData.map((c, i) => (
+                  <tr key={i} style={{ background: c.linked ? "#f3f8ff" : "transparent" }}>
+                    <td style={tdS("center")}>{i + 1}</td>
+                    <td style={tdS("center", true)}>{c.linked ? "↳ " : ""}{c.name}</td>
+                    <td style={tdS("right")}>₩{fmtNum(c._price)}</td>
+                    {invCustShowDep && <td style={tdS("right")}>{c._dep > 0 ? `₩${fmtNum(c._dep)}` : ""}</td>}
+                    {invCustShowMid && <td style={tdS("right")}>{c._mid > 0 ? `₩${fmtNum(c._mid)}` : ""}</td>}
+                    <td style={{ ...tdS("right", true), background: c._bal > 0 ? "#fff5f5" : "transparent", color: "#c00" }}>₩{fmtNum(c._bal)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#f9f9f9" }}>
+                  <td colSpan={2 + (invCustShowDep ? 1 : 0) + (invCustShowMid ? 1 : 0)} style={{ padding: "10px 8px", fontWeight: "800", borderTop: "2px solid #999", textAlign: "center", fontSize: "12px" }}>
+                    총 잔금 요청 금액
+                  </td>
+                  <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #999", fontSize: "16px", color: "#c00" }}>
+                    ₩{fmtNum(personReqAmt)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+            {/* 그룹별 입금 안내 */}
+            {invBillingGroups.some(g => g.count > 1) && (
+              <div style={{ marginTop: "10px" }}>
+                <div style={{ fontSize: "11px", fontWeight: "800", color: "#1565c0", marginBottom: "4px" }}>● 입금 안내 (그룹별)</div>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#e3f2fd" }}>
+                      <th style={{ ...thS, background: "#e3f2fd", color: "#1565c0" }}>입금자</th>
+                      <th style={{ ...thS, background: "#e3f2fd", color: "#1565c0", width: "50px" }}>인원</th>
+                      <th style={{ ...thS, background: "#e3f2fd", color: "#1565c0" }}>상품합계</th>
+                      {invCustShowDep && <th style={{ ...thS, background: "#e3f2fd", color: "#1565c0" }}>예약금</th>}
+                      {invCustShowMid && <th style={{ ...thS, background: "#e3f2fd", color: "#1565c0" }}>중도금</th>}
+                      <th style={{ ...thS, background: "#fde8e8", color: "#c00" }}>잔금</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invBillingGroups.map((g, i) => (
+                      <tr key={i} style={{ background: g.count > 1 ? "#f3f8ff" : "#fff" }}>
+                        <td style={tdS("center", true)}>{g.names}</td>
+                        <td style={tdS("center")}>{g.count}명</td>
+                        <td style={tdS("right")}>₩{fmtNum(g.totalPrice)}</td>
+                        {invCustShowDep && <td style={tdS("right")}>{g.totalDep > 0 ? `₩${fmtNum(g.totalDep)}` : ""}</td>}
+                        {invCustShowMid && <td style={tdS("right")}>{g.totalMid > 0 ? `₩${fmtNum(g.totalMid)}` : ""}</td>}
+                        <td style={{ ...tdS("right", true), color: g.totalBal > 0 ? "#c00" : "#27ae60" }}>{g.totalBal > 0 ? `₩${fmtNum(g.totalBal)}` : "완납"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            </>
+          )}
+
+          {/* ===== 항목별 테이블 ===== */}
+          {!isPerson && (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thS, width: "36px" }}>NO</th>
+                  <th style={thS}>상품명</th>
+                  <th style={thS}>상품가(1인)</th>
+                  <th style={{ ...thS, width: "50px" }}>인원</th>
+                  <th style={{ ...thS, width: "120px" }}>TOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invItemData.map((it, i) => (
+                  <tr key={i}>
+                    <td style={tdS("center")}>{i + 1}</td>
+                    <td style={tdS("left", true)}>{it.name}</td>
+                    <td style={tdS("right")}>₩{fmtNum(it._up)}</td>
+                    <td style={tdS("center")}>{it._qty}</td>
+                    <td style={tdS("right", true)}>₩{fmtNum(it._total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                {hasPay && invoice.payments.filter(pm => parseNum(pm.amount) > 0).map((pm, pi) => (
+                  <tr key={`pay-${pi}`} style={{ background: "#f0fdf4" }}>
+                    <td colSpan={4} style={{ padding: "7px 8px", textAlign: "right", fontSize: "12px", color: "#27ae60", fontWeight: "600", borderBottom: "1px solid #ddd" }}>{pm.label || "기입금"}</td>
+                    <td style={{ padding: "7px 6px", textAlign: "right", fontSize: "12px", color: "#27ae60", fontWeight: "700", borderBottom: "1px solid #ddd" }}>- ₩{fmtNum(parseNum(pm.amount))}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: "#f9f9f9" }}>
+                  <td colSpan={4} style={{ padding: "10px 8px", fontWeight: "800", borderTop: "2px solid #999", textAlign: "center", fontSize: "12px" }}>
+                    {hasPay ? "총 잔금 요청 금액" : "총 요청 금액"}
+                  </td>
+                  <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #999", fontSize: "16px", color: "#c00" }}>
+                    ₩{fmtNum(invBalance)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+
+          {/* Table notes */}
+          {invoice.tableNotes.length > 0 && invoice.tableNotes.some(n => n) && (
+            <div style={{ marginTop: "6px" }}>
+              {invoice.tableNotes.filter(n => n).map((note, i) => (
+                <div key={i} style={{ fontSize: "11px", color: "#333", textAlign: "center", padding: "4px 10px", background: "#f9f9f9", border: "1px solid #ddd", borderTop: i === 0 ? undefined : "none", lineHeight: "1.6" }}>{note}</div>
+              ))}
+            </div>
+          )}
+          {/* 기한 안내 */}
+          {invoice.dueDate && invoice.dueMsg && (
+            <div style={{ marginTop: "10px", textAlign: "center", padding: "10px", background: "#fef3f3", border: "2px solid #c00", borderRadius: "6px", fontSize: "13px", fontWeight: "700", color: "#c00" }}>
+              {invFormatDate(invoice.dueDate)}({invDayName(invoice.dueDate)}) {invoice.dueMsg}
+            </div>
+          )}
+        </div>
+
+        {/* 결제안내 */}
+        <div style={{ padding: "10px 30px 6px" }}>
+          <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 결제안내</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+            <thead>
+              <tr>
+                <th style={{ ...labelTd, width: "auto" }}>입금은행</th>
+                <th style={{ ...labelTd, width: "auto" }}>입금계좌</th>
+                <th style={{ ...labelTd, width: "auto" }}>예금주</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ ...valueTd, textAlign: "center", fontWeight: "800", fontSize: "14px" }}>{invoice.bankName}</td>
+                <td style={{ ...valueTd, textAlign: "center", fontWeight: "800", fontSize: "14px" }}>{invoice.bankAccount}</td>
+                <td style={{ ...valueTd, textAlign: "center", fontWeight: "800", fontSize: "14px" }}>{invoice.bankHolder}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* 취소 및 환불 규정 */}
+        {invoice.cancelPolicy.length > 0 && invoice.cancelPolicy.some(c => c) && (
+          <div style={{ padding: "10px 30px 6px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 취소 및 환불 규정</div>
+            <div style={{ border: "1px solid #ccc", padding: "10px 14px" }}>
+              <div style={{ textAlign: "center", fontSize: "12px", fontWeight: "700", marginBottom: "8px" }}>[ 여행 취소 수수료 규정 ]</div>
+              <div style={{ fontSize: "11px", lineHeight: "1.8", color: "#333" }}>
+                {invoice.cancelPolicy.filter(c => c).map((cp, i) => {
+                  const isRate = cp.includes("여행 개시");
+                  return <div key={i} style={{ padding: "1px 0", color: "#333" }}>{isRate ? "● " : "* "}{cp}</div>;
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ textAlign: "center", padding: "14px 30px", borderTop: `1px solid ${COLORS.border}`, marginTop: "10px" }}>
+          <div style={{ fontSize: "10px", color: "#aaa" }}>(주)초이스골프 | TEL: 1533-3160 | www.chctour.com</div>
+        </div>
+      </div>
+    );
+  };
+
+  // === 국내골프 견적서 ===
+  const dmProd = DM_PRODUCTS[dmProduct];
+  const dmCourseList = dmProd ? Object.keys(dmProd.courses) : [];
+  const dmRoomList = dmProd ? Object.keys(dmProd.rooms) : [];
+  const dmD2 = dmDate ? dmNextDay(dmDate) : "";
+  const dmSeason = (ds) => (!ds || ds < (dmProd?.seasonCut || "")) ? "s1" : "s2";
+  const dmShowSc1 = dmDate && dmSeason(dmDate)==="s2" && dmT1===0 && dmProd?.surcharge;
+  const dmShowSc2 = dmD2 && dmSeason(dmD2)==="s2" && dmT2===0 && dmProd?.surcharge;
+
+  const dmCalc = (() => {
+    if (!dmDate || !dmProd) return null;
+    const dt1=dmDayType(dmDate), dt2=dmDayType(dmD2);
+    const ss1=dmSeason(dmDate), ss2=dmSeason(dmD2);
+    const crs = dmProd.courses[dmCourse];
+    if (!crs) return null;
+    const gf1 = crs[ss1]?.[dt1]?.[dmT1] || 0;
+    const gf2 = crs[ss2]?.[dt2]?.[dmT2] || 0;
+    const s1v = (dmSc1 && ss1==="s2" && dmT1===0) ? (dmProd.surcharge||0) : 0;
+    const s2v = (dmSc2 && ss2==="s2" && dmT2===0) ? (dmProd.surcharge||0) : 0;
+    const rmData = dmProd.rooms[dmRmType];
+    const rmIdx = dmRoomSat(dmDate)?1:0;
+    const rmRate = rmData ? (rmData[ss1]?.[rmIdx] || 0) : 0;
+    const rmTotal = rmRate * dmRmCnt;
+    const rmPP = Math.ceil(rmTotal / dmPpl);
+    const bfPP = dmBfOn ? (dmProd.breakfast||0) : 0;
+    const marginTotal = (dmPpl * 2 * dmMgGolf) + (dmRmCnt * dmMgRoom);
+    const marginPP = Math.ceil(marginTotal / dmPpl);
+    const costPP = gf1 + gf2 + s1v + s2v + rmPP + bfPP;
+    const sellPP = costPP + marginPP;
+    const sellRound = Math.ceil(sellPP / 10000) * 10000;
+    return { dt1,dt2,ss1,ss2, gf1,gf2,s1v,s2v, rmRate,rmTotal,rmPP, bfPP, marginTotal,marginPP, costPP,sellPP,sellRound };
+  })();
+  const dmFinalSell = dmCustomSell ? parseInt(dmCustomSell,10) : (dmCalc?.sellRound||0);
+
+  const handleDmProductChange = (key) => {
+    setDmProduct(key);
+    const p = DM_PRODUCTS[key];
+    if (p) {
+      setDmCourse(Object.keys(p.courses)[0]);
+      setDmRmType(Object.keys(p.rooms)[0]);
+      setDmMgGolf(p.defaultMarginGolf || 10000);
+      setDmMgRoom(p.defaultMarginRoom || 5000);
+      setDmT1(0); setDmT2(0); setDmSc1(false); setDmSc2(false);
+      setDmBfOn(true); setDmCustomSell("");
+    }
+  };
+
+  const renderDomesticForm = () => {
+    if (!dmProd) return null;
+    const lbl = { fontSize:"12px", fontWeight:"700", color:"#666", marginBottom:"4px", display:"block" };
+    const inp = { padding:"8px 12px", borderRadius:"6px", border:"1px solid #ddd", fontSize:"14px", width:"100%", boxSizing:"border-box", fontFamily:"inherit" };
+    const rbtn = (a) => ({ padding:"8px 16px", borderRadius:"6px", cursor:"pointer", fontWeight:"700", fontSize:"13px", border:"none", background:a?"#2d6a4f":"#eee", color:a?"#fff":"#666" });
+    const td0 = { padding:"8px 10px", borderBottom:"1px solid #eee" };
+    const tdR0 = { ...td0, textAlign:"right", fontWeight:"700" };
+    const tdC0 = { ...td0, textAlign:"center", fontSize:"12px", color:"#888" };
+
+    return (
+      <div style={{ maxWidth:780, margin:"0 auto" }}>
+        {/* 상품 선택 */}
+        <div style={{ marginBottom:"12px" }}>
+          <label style={{ fontSize:"12px", fontWeight:"700", color:"#555", marginBottom:"6px", display:"block" }}>🏌️ 상품 선택</label>
+          <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+            {Object.entries(DM_PRODUCTS).map(([key, p]) => (
+              <button key={key} onClick={() => handleDmProductChange(key)} style={{
+                padding:"10px 20px", borderRadius:"8px", cursor:"pointer", fontWeight:"800", fontSize:"14px",
+                border: dmProduct===key ? "2px solid #2d6a4f" : "1px solid #ddd",
+                background: dmProduct===key ? "#e8f0ec" : "#fff",
+                color: dmProduct===key ? "#2d6a4f" : "#555",
+              }}>⛳ {p.name}</button>
+            ))}
+            <button disabled style={{ padding:"10px 20px", borderRadius:"8px", fontWeight:"600", fontSize:"13px", border:"1px dashed #ccc", background:"#f9f9f9", color:"#bbb", cursor:"default" }}>+ 상품 추가 (준비중)</button>
+          </div>
+        </div>
+
+        {/* 헤더 */}
+        <div style={{ background:"#2d6a4f", color:"#fff", padding:"14px 20px", borderRadius:"10px", marginBottom:"12px", textAlign:"center" }}>
+          <div style={{ fontSize:"18px", fontWeight:"800" }}>🏌️ {dmProd.name} 견적 계산기</div>
+          <div style={{ fontSize:"11px", opacity:0.8, marginTop:"4px" }}>{dmProd.sub}</div>
+        </div>
+
+        {/* 입력폼 */}
+        <div style={{ background:"#fff", borderRadius:"10px", padding:"20px", marginBottom:"12px", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
+          <div style={{ fontSize:"14px", fontWeight:"800", marginBottom:"16px", color:"#2d6a4f" }}>📋 패키지 정보 입력</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"12px", marginBottom:"16px" }}>
+            <div>
+              <label style={lbl}>출발일 (1일차)</label>
+              <input type="date" value={dmDate} onChange={e=>setDmDate(e.target.value)} style={inp} />
+              {dmDate && <div style={{fontSize:"11px",color:"#2d6a4f",marginTop:"4px",fontWeight:"700"}}>{dmFmtD(dmDate)} ~ {dmFmtD(dmD2)} · {dmProd.seasons[dmSeason(dmDate)]}</div>}
+            </div>
+            <div><label style={lbl}>인원수</label><input type="number" min={1} max={20} value={dmPpl} onChange={e=>setDmPpl(Math.max(1,+e.target.value||1))} style={inp} /></div>
+            <div><label style={lbl}>객실수</label><input type="number" min={1} max={10} value={dmRmCnt} onChange={e=>setDmRmCnt(Math.max(1,+e.target.value||1))} style={inp} /></div>
+          </div>
+
+          <div style={{ marginBottom:"16px" }}>
+            <label style={lbl}>골프장 선택</label>
+            <div style={{ display:"flex", gap:"8px", flexWrap:"wrap" }}>
+              {dmCourseList.map(c => <button key={c} onClick={()=>setDmCourse(c)} style={rbtn(dmCourse===c)}>{c}</button>)}
+            </div>
+          </div>
+
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"16px", marginBottom:"16px" }}>
+            <div>
+              <label style={lbl}>1일차 티타임 {dmDate && <span style={{color:"#2d6a4f"}}>({dmFmtD(dmDate)})</span>}</label>
+              <div style={{ display:"flex", gap:"8px" }}>
+                {[0,1].map(v => <button key={v} onClick={()=>{setDmT1(v);if(v!==0)setDmSc1(false);}} style={rbtn(dmT1===v)}>{v===0?"1부":"2부"}</button>)}
+              </div>
+              {dmShowSc1 && <label style={{fontSize:"12px",color:"#c00",marginTop:"6px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer"}}><input type="checkbox" checked={dmSc1} onChange={e=>setDmSc1(e.target.checked)} /> 8시 이후 추가금 (+{dmFmt(dmProd.surcharge)})</label>}
+            </div>
+            <div>
+              <label style={lbl}>2일차 티타임 {dmD2 && <span style={{color:"#2d6a4f"}}>({dmFmtD(dmD2)})</span>}</label>
+              <div style={{ display:"flex", gap:"8px" }}>
+                {[0,1].map(v => <button key={v} onClick={()=>{setDmT2(v);if(v!==0)setDmSc2(false);}} style={rbtn(dmT2===v)}>{v===0?"1부":"2부"}</button>)}
+              </div>
+              {dmShowSc2 && <label style={{fontSize:"12px",color:"#c00",marginTop:"6px",display:"flex",alignItems:"center",gap:"4px",cursor:"pointer"}}><input type="checkbox" checked={dmSc2} onChange={e=>setDmSc2(e.target.checked)} /> 8시 이후 추가금 (+{dmFmt(dmProd.surcharge)})</label>}
+            </div>
+          </div>
+
+          <div style={{ marginBottom:"16px" }}>
+            <label style={lbl}>객실 타입</label>
+            <select value={dmRmType} onChange={e=>setDmRmType(e.target.value)} style={inp}>
+              {dmRoomList.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          <label style={{fontSize:"13px",display:"flex",alignItems:"center",gap:"6px",fontWeight:"600",cursor:"pointer"}}>
+            <input type="checkbox" checked={dmBfOn} onChange={e=>setDmBfOn(e.target.checked)} />
+            조식 포함 ({dmFmt(dmProd.breakfast)}원/인)
+          </label>
+        </div>
+
+        {/* 계산 결과 */}
+        {dmCalc && (
+          <div style={{ background:"#fff", borderRadius:"10px", padding:"20px", boxShadow:"0 1px 4px rgba(0,0,0,0.06)", marginBottom:"12px" }}>
+            <div style={{ fontSize:"14px", fontWeight:"800", marginBottom:"12px", color:"#2d6a4f" }}>💰 요금 산출 내역</div>
+            <div style={{ display:"flex", gap:"16px", marginBottom:"12px", fontSize:"13px", color:"#555", flexWrap:"wrap" }}>
+              <span>📅 {dmFmtD(dmDate)} ~ {dmFmtD(dmD2)}</span><span>⛳ {dmCourse}</span><span>👥 {dmPpl}명 / {dmRmCnt}실</span>
+            </div>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"13px" }}>
+              <thead><tr style={{ background:"#2d6a4f", color:"#fff" }}>
+                <th style={{padding:"8px 10px",textAlign:"left",borderRadius:"6px 0 0 0"}}>항목</th>
+                <th style={{padding:"8px 10px",textAlign:"center"}}>상세</th>
+                <th style={{padding:"8px 10px",textAlign:"right",borderRadius:"0 6px 0 0"}}>1인 금액</th>
+              </tr></thead>
+              <tbody>
+                <tr><td style={td0}>⛳ 1일차 그린피</td><td style={tdC0}>{dmFmtD(dmDate)} {DM_DTL[dmCalc.dt1]} · {dmT1===0?"1부":"2부"}</td><td style={tdR0}>{dmFmt(dmCalc.gf1)}</td></tr>
+                {dmCalc.s1v>0 && <tr style={{background:"#fff5f5"}}><td style={{...td0,paddingLeft:"24px",color:"#c00",fontSize:"12px"}}>└ 추가금</td><td style={tdC0}></td><td style={{...tdR0,color:"#c00"}}>+{dmFmt(dmCalc.s1v)}</td></tr>}
+                <tr><td style={td0}>⛳ 2일차 그린피</td><td style={tdC0}>{dmFmtD(dmD2)} {DM_DTL[dmCalc.dt2]} · {dmT2===0?"1부":"2부"}</td><td style={tdR0}>{dmFmt(dmCalc.gf2)}</td></tr>
+                {dmCalc.s2v>0 && <tr style={{background:"#fff5f5"}}><td style={{...td0,paddingLeft:"24px",color:"#c00",fontSize:"12px"}}>└ 추가금</td><td style={tdC0}></td><td style={{...tdR0,color:"#c00"}}>+{dmFmt(dmCalc.s2v)}</td></tr>}
+                <tr><td style={td0}>🏠 객실 ({dmRoomSat(dmDate)?"토요일":"주중"})</td><td style={tdC0}>{dmRmType}<br/><span style={{fontSize:"11px"}}>{dmFmt(dmCalc.rmRate)}×{dmRmCnt}실÷{dmPpl}인</span></td><td style={tdR0}>{dmFmt(dmCalc.rmPP)}</td></tr>
+                {dmCalc.bfPP>0 && <tr><td style={td0}>🍳 조식</td><td style={tdC0}>조식+커피 이벤트</td><td style={tdR0}>{dmFmt(dmCalc.bfPP)}</td></tr>}
+                <tr style={{background:"#f5f5f5"}}><td style={{...td0,fontWeight:"800"}} colSpan={2}>📌 1인당 원가</td><td style={{...tdR0,fontSize:"15px"}}>{dmFmt(dmCalc.costPP)}원</td></tr>
+                <tr style={{background:"#fffde7"}}><td style={td0}>💼 마진</td><td style={{...tdC0,fontSize:"11px"}}>그린피 {dmFmt(dmMgGolf)}/인/R×{dmPpl}×2 + 객실 {dmFmt(dmMgRoom)}/실×{dmRmCnt} = {dmFmt(dmCalc.marginTotal)}</td><td style={tdR0}>{dmFmt(dmCalc.marginPP)}</td></tr>
+                <tr style={{background:"#e8f5e9"}}><td style={{...td0,fontWeight:"800"}} colSpan={2}>📊 1인당 산출가</td><td style={{...tdR0,fontSize:"15px"}}>{dmFmt(dmCalc.sellPP)}원</td></tr>
+                <tr style={{background:"#2d6a4f",color:"#fff"}}><td style={{...td0,fontWeight:"800",borderRadius:"0 0 0 6px"}} colSpan={2}>✅ 1인당 판매가 (만원 단위)</td><td style={{...tdR0,fontSize:"18px",borderRadius:"0 0 6px 0"}}>{dmFmt(dmCalc.sellRound)}원</td></tr>
+              </tbody>
+            </table>
+
+            <div style={{ marginTop:"12px", display:"flex", alignItems:"center", gap:"8px" }}>
+              <label style={{fontSize:"12px",fontWeight:"700",color:"#666",whiteSpace:"nowrap"}}>✏️ 판매가 직접 입력:</label>
+              <input type="number" step={10000} placeholder={String(dmCalc.sellRound)} value={dmCustomSell} onChange={e=>setDmCustomSell(e.target.value)} style={{...inp,width:"140px",textAlign:"right"}} />
+              {dmCustomSell && <button onClick={()=>setDmCustomSell("")} style={{border:"none",background:"#eee",borderRadius:"4px",padding:"4px 10px",cursor:"pointer",fontSize:"12px"}}>초기화</button>}
+            </div>
+
+            <div style={{ marginTop:"16px", background:"#f0f7f2", borderRadius:"8px", padding:"16px" }}>
+              <div style={{ fontSize:"13px", fontWeight:"700", color:"#2d6a4f", marginBottom:"8px" }}>📋 견적 요약</div>
+              <table style={{ width:"100%", fontSize:"13px" }}><tbody>
+                <tr><td style={{padding:"4px 0",color:"#666"}}>1인당 판매가</td><td style={{padding:"4px 0",textAlign:"right",fontWeight:"800",fontSize:"16px",color:"#2d6a4f"}}>{dmFmt(dmFinalSell)}원</td></tr>
+                <tr><td style={{padding:"4px 0",color:"#666"}}>팀 총액 ({dmPpl}명)</td><td style={{padding:"4px 0",textAlign:"right",fontWeight:"800",fontSize:"16px",color:"#2d6a4f"}}>{dmFmt(dmFinalSell * dmPpl)}원</td></tr>
+                <tr><td style={{padding:"4px 0",color:"#999",fontSize:"12px"}}>원가 총액</td><td style={{padding:"4px 0",textAlign:"right",color:"#999",fontSize:"12px"}}>{dmFmt(dmCalc.costPP * dmPpl)}원</td></tr>
+                <tr><td style={{padding:"4px 0",color:"#999",fontSize:"12px"}}>실제 마진</td><td style={{padding:"4px 0",textAlign:"right",color:"#4a7c59",fontSize:"12px",fontWeight:"700"}}>{dmFmt((dmFinalSell * dmPpl) - (dmCalc.costPP * dmPpl))}원</td></tr>
+              </tbody></table>
+            </div>
+          </div>
+        )}
+
+        {/* 마진 설정 */}
+        <details style={{ marginBottom:"12px" }}>
+          <summary style={{ cursor:"pointer", fontSize:"12px", color:"#888", background:"#fff", padding:"10px 16px", borderRadius:"8px" }}>⚙️ 마진 단가 설정</summary>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"12px", marginTop:"4px", background:"#fff", padding:"16px", borderRadius:"0 0 8px 8px" }}>
+            <div><label style={lbl}>그린피 마진 (1인/18홀)</label><input type="number" step={1000} value={dmMgGolf} onChange={e=>setDmMgGolf(+e.target.value||0)} style={inp} /></div>
+            <div><label style={lbl}>객실 마진 (1실)</label><input type="number" step={1000} value={dmMgRoom} onChange={e=>setDmMgRoom(+e.target.value||0)} style={inp} /></div>
+          </div>
+        </details>
+
+        {/* 요금표 */}
+        <details>
+          <summary style={{ cursor:"pointer", fontSize:"12px", color:"#888", background:"#fff", padding:"10px 16px", borderRadius:"8px" }}>📊 요금표 전체 보기</summary>
+          <div style={{ background:"#fff", padding:"16px", borderRadius:"0 0 8px 8px", marginTop:"4px", fontSize:"12px", overflowX:"auto" }}>
+            {dmCourseList.map(crs => (
+              <div key={crs} style={{ marginBottom:"16px" }}>
+                <div style={{ fontWeight:"800", color:"#2d6a4f", marginBottom:"6px" }}>{crs}</div>
+                <table style={{ width:"100%", borderCollapse:"collapse", marginBottom:"8px" }}>
+                  <thead><tr style={{ background:"#f5f5f5" }}>
+                    <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>요일</th>
+                    <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>티타임</th>
+                    <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s1}</th>
+                    <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s2}</th>
+                  </tr></thead>
+                  <tbody>
+                    {["weekday","friday","saturday","sunday"].map(dt => [0,1].map(ti => (
+                      <tr key={dt+ti}>
+                        {ti===0 && <td rowSpan={2} style={{padding:"4px 8px",border:"1px solid #ddd",fontWeight:"600"}}>{DM_DTL[dt]}</td>}
+                        <td style={{padding:"4px 8px",border:"1px solid #ddd",textAlign:"center"}}>{ti===0?"1부":"2부"}</td>
+                        <td style={{padding:"4px 8px",border:"1px solid #ddd",textAlign:"right"}}>{dmFmt(dmProd.courses[crs]?.s1?.[dt]?.[ti])}</td>
+                        <td style={{padding:"4px 8px",border:"1px solid #ddd",textAlign:"right"}}>{dmFmt(dmProd.courses[crs]?.s2?.[dt]?.[ti])}</td>
+                      </tr>
+                    )))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            <div style={{ fontWeight:"800", color:"#2d6a4f", marginBottom:"6px" }}>객실 요금표</div>
+            <table style={{ width:"100%", borderCollapse:"collapse" }}>
+              <thead><tr style={{ background:"#f5f5f5" }}>
+                <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>객실타입</th>
+                <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s1} 주중</th>
+                <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s1} 토</th>
+                <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s2} 주중</th>
+                <th style={{padding:"4px 8px",border:"1px solid #ddd"}}>{dmProd.seasons.s2} 토</th>
+              </tr></thead>
+              <tbody>
+                {dmRoomList.map(r => (
+                  <tr key={r}>
+                    <td style={{padding:"4px 8px",border:"1px solid #ddd",fontWeight:"600"}}>{r}</td>
+                    {["s1","s2"].map(s => [0,1].map(i => (
+                      <td key={s+i} style={{padding:"4px 8px",border:"1px solid #ddd",textAlign:"right"}}>{dmFmt(dmProd.rooms[r]?.[s]?.[i])}</td>
+                    )))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {dmProd.notes?.map((n,i) => <div key={i} style={{ marginTop:i===0?"8px":"4px", color:i===0?"#c00":"#666", fontWeight:i===0?"700":"400" }}>* {n}</div>)}
+          </div>
+        </details>
+      </div>
+    );
+  };
+
+
+  return (
+    <div style={{ fontFamily: "'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif", background: "#f0f2f0", minHeight: "100vh" }}>
+      {/* Top Bar */}
+      <div style={{
+        background: COLORS.primary, padding: "10px 24px", display: "flex",
+        justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 10,
+      }}>
+        <div style={{ color: "#fff", fontSize: "14px", fontWeight: "800", letterSpacing: "3px", whiteSpace: "nowrap" }}>
+          CHOICE GOLF
+        </div>
+        <div style={{ display: "flex", gap: "4px" }}>
+          {[
+            ["quote", "견적서"],
+            ["confirm", "확정서"],
+            ["brochure", "소개서"],
+            ["invoice", "인보이스"],
+            ["domestic", "국내골프"],
+          ].map(([m, label]) => (
+            <button key={m} onClick={() => { setMode(m); setSubMode("edit"); }} style={{
+              padding: "8px 16px", borderRadius: "6px", border: "none", cursor: "pointer",
+              background: mode === m ? "#fff" : "rgba(255,255,255,0.15)",
+              color: mode === m ? COLORS.primary : "#fff",
+              fontWeight: "800", fontSize: "13px",
+            }}>{label}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "6px" }}>
+          <button onClick={exportData} style={{
+            padding: "6px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.4)", cursor: "pointer",
+            background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: "700", fontSize: "11px", fontFamily: "inherit",
+          }}>📥 백업</button>
+          <button onClick={() => setShowImportArea(true)} style={{
+            padding: "6px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.4)", cursor: "pointer",
+            background: "rgba(255,255,255,0.1)", color: "#fff", fontWeight: "700", fontSize: "11px", fontFamily: "inherit",
+          }}>📤 복원</button>
+        </div>
+      </div>
+
+      {/* Backup Export/Import Popup */}
+      {(showExportData || showImportArea) && (
+        <div style={{ padding: "12px 24px", background: "#f8f8f8", borderBottom: `2px solid ${COLORS.border}` }}>
+          {showExportData && (
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "6px", color: "#555" }}>아래 내용을 전체 선택 → 복사 후 메모장에 저장하세요</div>
+              <textarea readOnly value={exportText} onClick={(e) => e.target.select()} style={{
+                width: "100%", height: "80px", fontSize: "10px", fontFamily: "monospace", boxSizing: "border-box",
+                border: `1px solid ${COLORS.border}`, borderRadius: "4px", padding: "8px", resize: "none",
+              }} />
+              <button onClick={() => setShowExportData(false)} style={{
+                marginTop: "6px", background: "#eee", color: "#666", border: "none", borderRadius: "6px",
+                padding: "6px 14px", fontSize: "11px", cursor: "pointer",
+              }}>닫기</button>
+            </div>
+          )}
+          {showImportArea && (
+            <div>
+              <div style={{ fontSize: "12px", fontWeight: "700", marginBottom: "6px", color: "#555" }}>저장해둔 백업 내용을 아래에 붙여넣기 하세요</div>
+              <textarea value={importText} onChange={(e) => setImportText(e.target.value)} placeholder="여기에 붙여넣기..." style={{
+                width: "100%", height: "80px", fontSize: "10px", fontFamily: "monospace", boxSizing: "border-box",
+                border: `1px solid ${COLORS.border}`, borderRadius: "4px", padding: "8px", resize: "none",
+              }} />
+              <div style={{ display: "flex", gap: "8px", marginTop: "6px", alignItems: "center" }}>
+                <button onClick={importFromText} style={{
+                  background: COLORS.accent, color: "#fff", border: "none", borderRadius: "6px",
+                  padding: "6px 14px", fontSize: "11px", fontWeight: "700", cursor: "pointer",
+                }}>불러오기</button>
+                <button onClick={() => { setShowImportArea(false); setImportText(""); }} style={{
+                  background: "#eee", color: "#666", border: "none", borderRadius: "6px",
+                  padding: "6px 14px", fontSize: "11px", cursor: "pointer",
+                }}>취소</button>
+                {importMsg && (
+                  <span style={{ fontSize: "11px", color: COLORS.accent, fontWeight: "700", padding: "4px 10px", background: COLORS.accentLight, borderRadius: "4px" }}>{importMsg}</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Content */}
+      <div style={{ padding: "20px", maxWidth: "850px", margin: "0 auto" }}>
+        {/* Sub-mode toggle: 입력 / 미리보기 */}
+        {mode !== "domestic" && <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginBottom: "16px" }}>
+          {["edit", "preview"].map((sm) => (
+            <button key={sm} onClick={() => setSubMode(sm)} style={{
+              padding: "8px 24px", borderRadius: "6px", border: `2px solid ${subMode === sm ? COLORS.accent : "#ddd"}`,
+              background: subMode === sm ? COLORS.accentLight : "#fff",
+              color: subMode === sm ? COLORS.accent : "#888",
+              fontWeight: "800", fontSize: "13px", cursor: "pointer",
+            }}>{sm === "edit" ? "✏️ 입력" : "👁 미리보기"}</button>
+          ))}
+        </div>}
+
+        {/* Download buttons (preview mode only) */}
+        {subMode === "preview" && (
+          <div style={{ marginBottom: "14px", textAlign: "center" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "12px", alignItems: "center" }}>
+              {(mode === "quote" || mode === "confirm") && (
+                <button onClick={() => setCompact(p => !p)} style={{
+                  padding: "10px 20px", borderRadius: "8px", border: compact ? "2px solid " + COLORS.accent : "2px solid #ccc",
+                  cursor: "pointer", background: compact ? COLORS.accentLight : "#f5f5f5", color: compact ? COLORS.accent : "#666",
+                  fontWeight: "800", fontSize: "13px", fontFamily: "inherit",
+                }}>
+                  {compact ? "📐 컴팩트 ON" : "📐 컴팩트"}
+                </button>
+              )}
+              {(mode === "quote" || mode === "confirm" || mode === "invoice") && (
+                <button onClick={handleReview} disabled={reviewLoading} style={{
+                  padding: "10px 20px", borderRadius: "8px", border: "2px solid #7c4dff",
+                  cursor: reviewLoading ? "wait" : "pointer", background: reviewLoading ? "#ede7f6" : "#f3f0ff", color: "#7c4dff",
+                  fontWeight: "800", fontSize: "13px", fontFamily: "inherit",
+                }}>
+                  {reviewLoading ? "🔍 검수 중..." : "🔍 AI 검수"}
+                </button>
+              )}
+              <button onClick={mode === "quote" ? handleDownload : mode === "confirm" ? handleConfirmDownload : mode === "invoice" ? handleInvoiceDownload : handleBrochureDownload} disabled={downloading} style={{
+                padding: "10px 28px", borderRadius: "8px", border: "none", cursor: downloading ? "wait" : "pointer",
+                background: downloading ? "#999" : "#E8192C", color: "#fff",
+                fontWeight: "800", fontSize: "14px", boxShadow: "0 2px 8px rgba(232,25,44,0.3)", fontFamily: "inherit",
+              }}>
+                {downloading ? "저장 중..." : "JPG 저장"}
+              </button>
+              {mode === "quote" && (
+                <button onClick={handleExcelDownload} disabled={downloading} style={{
+                  padding: "10px 28px", borderRadius: "8px", border: "none", cursor: downloading ? "wait" : "pointer",
+                  background: downloading ? "#999" : "#217346", color: "#fff",
+                  fontWeight: "800", fontSize: "14px", boxShadow: "0 2px 8px rgba(33,115,70,0.3)", fontFamily: "inherit",
+                }}>
+                  {downloading ? "저장 중..." : "엑셀 저장"}
+                </button>
+              )}
+            </div>
+            <div style={{ marginTop: "6px", fontSize: "11px", color: "#888" }}>브라우저 다운로드 폴더에 저장됩니다.</div>
+            {/* AI 검수 결과 */}
+            {reviewResult && (
+              <div style={{ marginTop: "12px", background: "#fff", borderRadius: "10px", border: "2px solid #7c4dff", boxShadow: "0 4px 16px rgba(124,77,255,0.15)", overflow: "hidden" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", background: "#f3f0ff", borderBottom: "1px solid #e0d6ff" }}>
+                  <span style={{ fontSize: "14px", fontWeight: "800", color: "#7c4dff" }}>🔍 AI 검수 결과</span>
+                  <button onClick={() => setReviewResult(null)} style={{ background: "none", border: "none", fontSize: "18px", cursor: "pointer", color: "#999", padding: "0 4px" }}>✕</button>
+                </div>
+                <div style={{ padding: "16px", fontSize: "13px", lineHeight: "1.9", whiteSpace: "pre-wrap", color: "#333" }}>
+                  {reviewResult}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Quote */}
+        {mode === "quote" && subMode === "edit" && renderForm()}
+        {mode === "quote" && subMode === "preview" && (
+          <div style={{ background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
+            {renderPreview()}
+          </div>
+        )}
+
+        {/* Confirmation */}
+        {mode === "confirm" && subMode === "edit" && renderConfirmForm()}
+        {mode === "confirm" && subMode === "preview" && (
+          <div style={{ background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
+            {renderConfirmPreview()}
+          </div>
+        )}
+
+        {/* Brochure */}
+        {mode === "brochure" && subMode === "edit" && renderBrochureForm()}
+        {mode === "brochure" && subMode === "preview" && (
+          <div style={{ background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
+            {renderBrochurePreview()}
+          </div>
+        )}
+
+        {/* Invoice */}
+        {mode === "invoice" && subMode === "edit" && renderInvoiceForm()}
+        {mode === "invoice" && subMode === "preview" && (
+          <div style={{ background: "#fff", borderRadius: "8px", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
+            {renderInvoicePreview()}
+          </div>
+        )}
+
+        {/* Domestic Golf */}
+        {mode === "domestic" && renderDomesticForm()}
+      </div>
+    </div>
+  );
+}
