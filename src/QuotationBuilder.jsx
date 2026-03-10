@@ -1018,9 +1018,10 @@ export default function QuotationBuilder({ apiKey }) {
     if (!brochureRef.current) return;
     setDownloading(true);
     try {
-      const htmlToImage = await loadHtmlToImage();
+      const h2c = await loadHtml2Canvas();
       const el = brochureRef.current;
-      const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff" });
+      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `소개서_${brochure.nameKo || "초이스골프"}.jpg`;
@@ -1035,13 +1036,10 @@ export default function QuotationBuilder({ apiKey }) {
     if (!confirmRef.current) return;
     setDownloading(true);
     try {
-      const htmlToImage = await loadHtmlToImage();
+      const h2c = await loadHtml2Canvas();
       const el = confirmRef.current;
-      const dataUrl = await htmlToImage.toJpeg(el, {
-        quality: 0.95,
-        pixelRatio: 3,
-        backgroundColor: "#ffffff",
-      });
+      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `확정서_${confirm.productName || "초이스골프"}.jpg`;
@@ -1056,11 +1054,10 @@ export default function QuotationBuilder({ apiKey }) {
     if (!invoiceRef.current) return;
     setDownloading(true);
     try {
-      const htmlToImage = await loadHtmlToImage();
+      const h2c = await loadHtml2Canvas();
       const el = invoiceRef.current;
-      const dataUrl = await htmlToImage.toJpeg(el, {
-        quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff",
-      });
+      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `인보이스_${invoice.repName || invoice.productName || "초이스골프"}.jpg`;
@@ -1180,9 +1177,10 @@ export default function QuotationBuilder({ apiKey }) {
     if (!previewRef.current) return;
     setDownloading(true);
     try {
-      const htmlToImage = await loadHtmlToImage();
+      const h2c = await loadHtml2Canvas();
       const el = previewRef.current;
-      const dataUrl = await htmlToImage.toJpeg(el, { quality: 0.95, pixelRatio: 3, backgroundColor: "#ffffff" });
+      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = `견적서_${form.productName || "초이스골프"}.jpg`;
@@ -3291,7 +3289,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
   };
 
 
-  const INVOICE_NIGHTS = ["2박3일","3박4일","4박5일","5박6일","6박7일","7박8일"];
+  const INVOICE_NIGHTS = ["2박3일","2박4일","3박4일","3박5일","4박5일","4박6일","5박6일","5박7일","6박7일","6박8일","7박8일"];
   const invoiceReturnDate = (() => {
     if (!invoice.departureDate || !invoice.nights) return "";
     const m = invoice.nights.match(/(\d+)박/);
