@@ -709,6 +709,20 @@ export default function QuotationBuilder({ apiKey }) {
       { label: "예약금", amount: "4,800,000" },
       { label: "중도금", amount: "4,000,000" },
     ],
+    // --- 환불 모드 ---
+    refundItems: [
+      { name: "항공권", amount: "1,500,000", persons: "3", note: "" },
+    ],
+    deductItems: [
+      { name: "항공 취소수수료", amount: "150,000", persons: "3", note: "항공사 부과" },
+      { name: "여행사 업무수수료", amount: "50,000", persons: "3", note: "1인당" },
+    ],
+    totalPaid: "10,000,000",
+    refundDate: "",
+    refundMsg: "영업일 기준 3~5일 이내 환불 처리 예정입니다.",
+    refundBank: "",
+    refundAccountNo: "",
+    refundAccountHolder: "",
     // --- 공통 ---
     dueDate: "2026-02-20",
     dueMsg: "까지 잔금 요청 드립니다.",
@@ -766,6 +780,38 @@ export default function QuotationBuilder({ apiKey }) {
   const removeInvoicePayment = (idx) => setInvoice(p => ({
     ...p, payments: p.payments.filter((_, i) => i !== idx)
   }));
+  // --- 환불 helpers ---
+  const updateRefundItem = (idx, field, value) => setInvoice(p => ({
+    ...p, refundItems: p.refundItems.map((it, i) => i === idx ? { ...it, [field]: value } : it)
+  }));
+  const addRefundItem = () => setInvoice(p => ({
+    ...p, refundItems: [...p.refundItems, { name: "", amount: "", persons: "1", note: "" }]
+  }));
+  const removeRefundItem = (idx) => setInvoice(p => ({
+    ...p, refundItems: p.refundItems.filter((_, i) => i !== idx)
+  }));
+  const updateDeductItem = (idx, field, value) => setInvoice(p => ({
+    ...p, deductItems: p.deductItems.map((it, i) => i === idx ? { ...it, [field]: value } : it)
+  }));
+  const addDeductItem = () => setInvoice(p => ({
+    ...p, deductItems: [...p.deductItems, { name: "", amount: "", persons: "1", note: "" }]
+  }));
+  const removeDeductItem = (idx) => setInvoice(p => ({
+    ...p, deductItems: p.deductItems.filter((_, i) => i !== idx)
+  }));
+  // --- 환불 Calculations ---
+  const refundTotalPaid = parseNum(invoice.totalPaid);
+  const refundItemsData = (invoice.refundItems || []).filter(it => it.name).map(it => {
+    const amt = parseNum(it.amount); const p = parseNum(it.persons) || 1;
+    return { ...it, _amt: amt, _p: p, _total: amt * p };
+  });
+  const deductItemsData = (invoice.deductItems || []).filter(it => it.name).map(it => {
+    const amt = parseNum(it.amount); const p = parseNum(it.persons) || 1;
+    return { ...it, _amt: amt, _p: p, _total: amt * p };
+  });
+  const refundTotalCost = refundItemsData.reduce((s, it) => s + it._total, 0);
+  const deductTotal = deductItemsData.reduce((s, it) => s + it._total, 0);
+  const refundAmount = Math.max(0, refundTotalPaid - deductTotal);
   const updateInvoiceTableNote = (idx, value) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.map((n, i) => i === idx ? value : n) }));
   const addInvoiceTableNote = () => setInvoice(p => ({ ...p, tableNotes: [...p.tableNotes, ""] }));
   const removeInvoiceTableNote = (idx) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.filter((_, i) => i !== idx) }));
@@ -1020,7 +1066,7 @@ export default function QuotationBuilder({ apiKey }) {
     try {
       const h2c = await loadHtml2Canvas();
       const el = brochureRef.current;
-      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      await new Promise(r => setTimeout(r, 300)); const canvas = await h2c(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false });
       const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
@@ -1038,7 +1084,7 @@ export default function QuotationBuilder({ apiKey }) {
     try {
       const h2c = await loadHtml2Canvas();
       const el = confirmRef.current;
-      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      await new Promise(r => setTimeout(r, 300)); const canvas = await h2c(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false });
       const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
@@ -1056,7 +1102,7 @@ export default function QuotationBuilder({ apiKey }) {
     try {
       const h2c = await loadHtml2Canvas();
       const el = invoiceRef.current;
-      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      await new Promise(r => setTimeout(r, 300)); const canvas = await h2c(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false });
       const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
@@ -1179,7 +1225,7 @@ export default function QuotationBuilder({ apiKey }) {
     try {
       const h2c = await loadHtml2Canvas();
       const el = previewRef.current;
-      const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff", logging: false, windowWidth: el.scrollWidth, windowHeight: el.scrollHeight });
+      await new Promise(r => setTimeout(r, 300)); const canvas = await h2c(el, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: "#ffffff", logging: false });
       const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
@@ -3323,6 +3369,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
           {[
             { key: "person", icon: "👤", label: "고객별 청구", desc: "이름별로 상품가/예약금/잔금 입력" },
             { key: "item", icon: "📦", label: "항목별 청구", desc: "상품/수수료 단위 + 기입금 차감" },
+            { key: "refund", icon: "💸", label: "환불 안내", desc: "취소 시 환불 내역 안내" },
           ].map(m => (
             <button key={m.key} onClick={() => updateInvoice("invMode", m.key)} style={{
               flex: 1, padding: "14px 12px", border: invoice.invMode === m.key ? `2px solid ${COLORS.accent}` : "2px solid #ddd",
@@ -3466,14 +3513,103 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
           </>
         )}
 
+        {/* ===== 환불 모드 ===== */}
+        {invoice.invMode === "refund" && (
+          <>
+            <div style={cardStyle}>
+              {sectionHeader("💰", "기입금 총액")}
+              <div style={rowStyle}>
+                <div style={{ flex: 1 }}><label style={labelStyle}>고객 기입금 총액</label><input style={fieldStyle} value={invoice.totalPaid} onChange={e => updateInvoice("totalPaid", autoFmtPrice(e.target.value))} placeholder="10,000,000" /></div>
+              </div>
+            </div>
+            <div style={cardStyle}>
+              {sectionHeader("📋", "비용 세부내역 (참고용)")}
+              <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>실제 사용/발생 비용 내역. 환불 계산에는 직접 포함되지 않습니다.</div>
+              <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+                <span style={{ width: "18px", textAlign: "center" }}>No</span>
+                <span style={{ flex: 3 }}>항목명</span>
+                <span style={{ flex: 1, textAlign: "right" }}>단가</span>
+                <span style={{ width: "40px", textAlign: "center" }}>인원</span>
+                <span style={{ width: "80px", textAlign: "right" }}>소계</span>
+                <span style={{ flex: 1 }}>비고</span>
+                <span style={{ width: "22px" }} />
+              </div>
+              {invoice.refundItems.map((it, i) => {
+                const total = parseNum(it.amount) * (parseNum(it.persons) || 1);
+                return (
+                  <div key={i} style={{ display: "flex", gap: "5px", marginBottom: "4px", alignItems: "center" }}>
+                    <span style={{ width: "18px", fontSize: "11px", fontWeight: "700", color: COLORS.accent, textAlign: "center" }}>{i + 1}</span>
+                    <input style={{ ...smFieldStyle, flex: 3 }} value={it.name} onChange={e => updateRefundItem(i, "name", e.target.value)} placeholder="항공권 / 호텔 등" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={it.amount} onChange={e => updateRefundItem(i, "amount", autoFmtPrice(e.target.value))} placeholder="단가" />
+                    <input style={{ ...smFieldStyle, width: "40px", textAlign: "center", flexShrink: 0 }} value={it.persons} onChange={e => updateRefundItem(i, "persons", e.target.value)} placeholder="1" />
+                    <span style={{ width: "80px", textAlign: "right", fontSize: "11px", fontWeight: "700", color: "#333", flexShrink: 0 }}>₩{fmtNum(total)}</span>
+                    <input style={{ ...smFieldStyle, flex: 1 }} value={it.note} onChange={e => updateRefundItem(i, "note", e.target.value)} placeholder="비고" />
+                    {invoice.refundItems.length > 1 ? <button onClick={() => removeRefundItem(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button> : <span style={{ width: "22px" }} />}
+                  </div>
+                );
+              })}
+              <button onClick={addRefundItem} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "6px" }}>+ 항목 추가</button>
+            </div>
+            <div style={cardStyle}>
+              {sectionHeader("🔻", "공제 항목")}
+              <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>취소수수료, 업무수수료 등 환불에서 차감되는 금액</div>
+              <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+                <span style={{ width: "18px", textAlign: "center" }}>No</span>
+                <span style={{ flex: 3 }}>공제 항목명</span>
+                <span style={{ flex: 1, textAlign: "right" }}>단가</span>
+                <span style={{ width: "40px", textAlign: "center" }}>인원</span>
+                <span style={{ width: "80px", textAlign: "right" }}>소계</span>
+                <span style={{ flex: 1 }}>비고</span>
+                <span style={{ width: "22px" }} />
+              </div>
+              {invoice.deductItems.map((it, i) => {
+                const total = parseNum(it.amount) * (parseNum(it.persons) || 1);
+                return (
+                  <div key={i} style={{ display: "flex", gap: "5px", marginBottom: "4px", alignItems: "center" }}>
+                    <span style={{ width: "18px", fontSize: "11px", fontWeight: "700", color: "#c00", textAlign: "center" }}>{i + 1}</span>
+                    <input style={{ ...smFieldStyle, flex: 3 }} value={it.name} onChange={e => updateDeductItem(i, "name", e.target.value)} placeholder="항공 취소수수료 / 업무수수료" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={it.amount} onChange={e => updateDeductItem(i, "amount", autoFmtPrice(e.target.value))} placeholder="단가" />
+                    <input style={{ ...smFieldStyle, width: "40px", textAlign: "center", flexShrink: 0 }} value={it.persons} onChange={e => updateDeductItem(i, "persons", e.target.value)} placeholder="1" />
+                    <span style={{ width: "80px", textAlign: "right", fontSize: "11px", fontWeight: "700", color: "#c00", flexShrink: 0 }}>- ₩{fmtNum(total)}</span>
+                    <input style={{ ...smFieldStyle, flex: 1 }} value={it.note} onChange={e => updateDeductItem(i, "note", e.target.value)} placeholder="비고" />
+                    {invoice.deductItems.length > 1 ? <button onClick={() => removeDeductItem(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button> : <span style={{ width: "22px" }} />}
+                  </div>
+                );
+              })}
+              <button onClick={addDeductItem} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: "#c00", fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "6px" }}>+ 공제 항목 추가</button>
+              <div style={{ marginTop: "10px", padding: "10px", background: "#fef3f3", borderRadius: "6px", fontSize: "12px", lineHeight: "1.8" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}><span>고객 기입금</span><span>₩ {fmtNum(refundTotalPaid)}</span></div>
+                {deductItemsData.map((it, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", color: "#c00" }}><span>{it.name}{it.note ? ` (${it.note})` : ""}</span><span>- ₩ {fmtNum(it._total)}</span></div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", borderTop: "1px solid #ddd", paddingTop: "4px", marginTop: "4px", color: "#1565c0" }}>
+                  <span>환불 예정 금액</span><span>₩ {fmtNum(refundAmount)}</span>
+                </div>
+              </div>
+            </div>
+            <div style={cardStyle}>
+              {sectionHeader("🏦", "환불 계좌 (고객)")}
+              <div style={rowStyle}>
+                <div style={{ flex: 1 }}><label style={labelStyle}>은행명</label><input style={fieldStyle} value={invoice.refundBank} onChange={e => updateInvoice("refundBank", e.target.value)} placeholder="국민은행" /></div>
+                <div style={{ flex: 2 }}><label style={labelStyle}>계좌번호</label><input style={fieldStyle} value={invoice.refundAccountNo} onChange={e => updateInvoice("refundAccountNo", e.target.value)} placeholder="000-000-00-0000" /></div>
+                <div style={{ flex: 1 }}><label style={labelStyle}>예금주</label><input style={fieldStyle} value={invoice.refundAccountHolder} onChange={e => updateInvoice("refundAccountHolder", e.target.value)} placeholder="홍길동" /></div>
+              </div>
+              <div style={rowStyle}>
+                <div style={{ flex: 1 }}><label style={labelStyle}>환불 예정일</label><input type="date" style={fieldStyle} value={invoice.refundDate} onChange={e => updateInvoice("refundDate", e.target.value)} /></div>
+                <div style={{ flex: 2 }}><label style={labelStyle}>안내 문구</label><input style={fieldStyle} value={invoice.refundMsg} onChange={e => updateInvoice("refundMsg", e.target.value)} /></div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* 기한 & 안내 */}
-        <div style={cardStyle}>
+        {invoice.invMode !== "refund" && <div style={cardStyle}>
           {sectionHeader("📅", "입금 안내")}
           <div style={rowStyle}>
             <div style={{ flex: 1 }}><label style={labelStyle}>입금 기한</label><input type="date" style={fieldStyle} value={invoice.dueDate} onChange={e => updateInvoice("dueDate", e.target.value)} /></div>
             <div style={{ flex: 2 }}><label style={labelStyle}>안내 문구</label><input style={fieldStyle} value={invoice.dueMsg} onChange={e => updateInvoice("dueMsg", e.target.value)} /></div>
           </div>
-        </div>
+        </div>}
 
         {/* 테이블 하단 안내문 */}
         <div style={cardStyle}>
@@ -3529,7 +3665,8 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         {renderCompanyHeader()}
 
         <div style={{ padding: "14px 30px 8px" }}>
-          <div style={{ fontSize: "16px", fontWeight: "900", color: "#111", letterSpacing: "2px" }}>INVOICE</div>
+          <div style={{ fontSize: "16px", fontWeight: "900", color: "#111", letterSpacing: "2px" }}>{invoice.invMode === "refund" ? "REFUND NOTICE" : "INVOICE"}</div>
+          {invoice.invMode === "refund" && <div style={{ fontSize: "11px", color: "#1565c0", fontWeight: "700", marginTop: "2px", paddingLeft: "30px" }}>환불 안내서</div>}
         </div>
 
         {/* 예약정보 */}
@@ -3675,6 +3812,124 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
             </table>
           )}
 
+          {/* ===== 환불 테이블 ===== */}
+          {invoice.invMode === "refund" && (
+            <>
+              <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 기입금 내역</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px" }}>
+                <tbody>
+                  <tr><td style={labelTd}>기입금 총액</td><td style={{ ...valueTd, textAlign: "right", fontWeight: "800", fontSize: "14px" }} colSpan={3}>₩ {fmtNum(refundTotalPaid)}</td></tr>
+                </tbody>
+              </table>
+
+              {refundItemsData.length > 0 && (
+                <>
+                  <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 비용 세부내역</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...thS, width: "36px" }}>NO</th>
+                        <th style={thS}>항목</th>
+                        <th style={thS}>단가</th>
+                        <th style={{ ...thS, width: "50px" }}>인원</th>
+                        <th style={{ ...thS, width: "100px" }}>소계</th>
+                        <th style={thS}>비고</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {refundItemsData.map((it, i) => (
+                        <tr key={i}>
+                          <td style={tdS("center")}>{i + 1}</td>
+                          <td style={tdS("left", true)}>{it.name}</td>
+                          <td style={tdS("right")}>₩{fmtNum(it._amt)}</td>
+                          <td style={tdS("center")}>{it._p}</td>
+                          <td style={tdS("right")}>₩{fmtNum(it._total)}</td>
+                          <td style={tdS("center")}>{it.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "#f9f9f9" }}>
+                        <td colSpan={4} style={{ padding: "8px", fontWeight: "700", textAlign: "center", borderTop: "1px solid #999", fontSize: "12px" }}>비용 합계</td>
+                        <td style={{ padding: "8px", textAlign: "right", fontWeight: "700", borderTop: "1px solid #999", fontSize: "12px" }}>₩{fmtNum(refundTotalCost)}</td>
+                        <td style={{ borderTop: "1px solid #999" }}></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </>
+              )}
+
+              <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px", color: "#c00" }}>● 공제 내역</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "4px" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thS, width: "36px" }}>NO</th>
+                    <th style={{ ...thS, background: "#fde8e8" }}>공제 항목</th>
+                    <th style={{ ...thS, background: "#fde8e8" }}>단가</th>
+                    <th style={{ ...thS, background: "#fde8e8", width: "50px" }}>인원</th>
+                    <th style={{ ...thS, background: "#fde8e8", width: "100px" }}>소계</th>
+                    <th style={{ ...thS, background: "#fde8e8" }}>비고</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deductItemsData.map((it, i) => (
+                    <tr key={i}>
+                      <td style={tdS("center")}>{i + 1}</td>
+                      <td style={tdS("left", true)}>{it.name}</td>
+                      <td style={{ ...tdS("right"), color: "#c00" }}>₩{fmtNum(it._amt)}</td>
+                      <td style={tdS("center")}>{it._p}</td>
+                      <td style={{ ...tdS("right"), color: "#c00", fontWeight: "700" }}>- ₩{fmtNum(it._total)}</td>
+                      <td style={tdS("center")}>{it.note}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div style={{ marginTop: "8px", border: "2px solid #1565c0", borderRadius: "8px", overflow: "hidden" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <tbody>
+                    <tr style={{ background: "#f5f5f5" }}>
+                      <td style={{ padding: "8px 12px", fontSize: "12px", fontWeight: "700" }}>고객 기입금</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontSize: "13px", fontWeight: "700" }}>₩ {fmtNum(refundTotalPaid)}</td>
+                    </tr>
+                    <tr style={{ background: "#fef3f3" }}>
+                      <td style={{ padding: "8px 12px", fontSize: "12px", fontWeight: "700", color: "#c00" }}>공제 합계</td>
+                      <td style={{ padding: "8px 12px", textAlign: "right", fontSize: "13px", fontWeight: "700", color: "#c00" }}>- ₩ {fmtNum(deductTotal)}</td>
+                    </tr>
+                    <tr style={{ background: "#e3f2fd" }}>
+                      <td style={{ padding: "12px", fontSize: "14px", fontWeight: "900", color: "#1565c0" }}>환불 예정 금액</td>
+                      <td style={{ padding: "12px", textAlign: "right", fontSize: "20px", fontWeight: "900", color: "#1565c0" }}>₩ {fmtNum(refundAmount)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {invoice.refundDate && (
+                <div style={{ marginTop: "10px", textAlign: "center", padding: "10px", background: "#e3f2fd", border: "2px solid #1565c0", borderRadius: "6px", fontSize: "13px", fontWeight: "700", color: "#1565c0" }}>
+                  환불 예정일: {invFormatDate(invoice.refundDate)} · {invoice.refundMsg}
+                </div>
+              )}
+
+              {(invoice.refundBank || invoice.refundAccountNo) && (
+                <div style={{ marginTop: "8px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 환불 계좌</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                    <thead><tr>
+                      <th style={{ ...labelTd, width: "auto" }}>은행</th>
+                      <th style={{ ...labelTd, width: "auto" }}>계좌번호</th>
+                      <th style={{ ...labelTd, width: "auto" }}>예금주</th>
+                    </tr></thead>
+                    <tbody><tr>
+                      <td style={{ ...valueTd, textAlign: "center", fontWeight: "800" }}>{invoice.refundBank}</td>
+                      <td style={{ ...valueTd, textAlign: "center", fontWeight: "800" }}>{invoice.refundAccountNo}</td>
+                      <td style={{ ...valueTd, textAlign: "center", fontWeight: "800" }}>{invoice.refundAccountHolder}</td>
+                    </tr></tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
           {/* Table notes */}
           {invoice.tableNotes.length > 0 && invoice.tableNotes.some(n => n) && (
             <div style={{ marginTop: "6px" }}>
@@ -3692,7 +3947,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         </div>
 
         {/* 결제안내 */}
-        <div style={{ padding: "10px 30px 6px" }}>
+        {invoice.invMode !== "refund" && <div style={{ padding: "10px 30px 6px" }}>
           <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 결제안내</div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
             <thead>
@@ -3711,6 +3966,8 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
             </tbody>
           </table>
         </div>
+
+        }
 
         {/* 취소 및 환불 규정 */}
         {invoice.cancelPolicy.length > 0 && invoice.cancelPolicy.some(c => c) && (
