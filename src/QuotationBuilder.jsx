@@ -3965,9 +3965,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
               </tr>
             </tbody>
           </table>
-        </div>
-
-        }
+        </div>}
 
         {/* 취소 및 환불 규정 */}
         {invoice.cancelPolicy.length > 0 && invoice.cancelPolicy.some(c => c) && (
