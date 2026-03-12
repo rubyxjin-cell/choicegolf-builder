@@ -3462,7 +3462,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         )}
 
         {/* ===== 항목별 모드 ===== */}
-        {!isPerson && (
+        {invoice.invMode === "item" && (
           <>
             <div style={cardStyle}>
               {sectionHeader("📦", "요금 항목")}
@@ -3771,7 +3771,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
           )}
 
           {/* ===== 항목별 테이블 ===== */}
-          {!isPerson && (
+          {invoice.invMode === "item" && (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
