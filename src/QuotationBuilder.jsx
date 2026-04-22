@@ -691,7 +691,7 @@ export default function QuotationBuilder({ apiKey }) {
     invMode: "person", // "person" (인별) or "item" (항목별) or "refund" (환불)
     // --- 환불 모드 ---
     refundCustomers: [
-      { name: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
+      { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
     ],
     refundBankName: "",
     refundBankAccount: "",
@@ -784,7 +784,7 @@ export default function QuotationBuilder({ apiKey }) {
   // --- 환불 모드 helpers ---
   // --- 환불 고객별 helpers ---
   const updateRefundCustomer = (ci, field, value) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i === ci ? { ...c, [field]: value } : c) }));
-  const addRefundCustomer = () => setInvoice(p => ({ ...p, refundCustomers: [...p.refundCustomers, { name: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] }] }));
+  const addRefundCustomer = () => setInvoice(p => ({ ...p, refundCustomers: [...p.refundCustomers, { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] }] }));
   const removeRefundCustomer = (ci) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.filter((_, i) => i !== ci) }));
   const updateRefundCustBreakdown = (ci, bi, field, value) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i !== ci ? c : { ...c, priceBreakdown: (c.priceBreakdown || []).map((b, j) => j === bi ? { ...b, [field]: value } : b) }) }));
   const addRefundCustBreakdown = (ci) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i !== ci ? c : { ...c, priceBreakdown: [...(c.priceBreakdown || []), { name: "", amount: "" }] }) }));
@@ -842,11 +842,43 @@ export default function QuotationBuilder({ apiKey }) {
   const invTotalPaid = invoice.payments.reduce((s, pm) => s + parseNum(pm.amount), 0);
   const invBalance = Math.max(0, invGrandTotal - invTotalPaid);
   // --- 환불 계산 ---
+  // name에서 "외 N분/N명/N인" 패턴 자동 파싱하여 인원수 추출
+  const parsePersonCountFromName = (name) => {
+    if (!name) return 1;
+    const m = String(name).match(/외\s*(\d+)\s*[분명인]/);
+    if (m) return Number(m[1]) + 1;  // "외 5분" → 본인 + 5 = 6
+    // 이름 구분자(쉼표, · , 콤마 등)로 나눠서 개수 세기
+    const parts = String(name).split(/\s*[,·・&·]\s*|\s+및\s+/).filter(Boolean);
+    if (parts.length >= 2) return parts.length;
+    return 1;
+  };
   const refundCustomerData = (invoice.refundCustomers || []).map(c => {
-    const original = parseNum(c.originalPrice);
+    const originalTotal = parseNum(c.originalPrice);
     const deductTotal = (c.deductions || []).reduce((s, d) => s + parseNum(d.amount), 0);
-    const refundAmt = Math.max(0, original - deductTotal);
-    return { ...c, _original: original, _deductTotal: deductTotal, _refundAmt: refundAmt };
+    const refundTotal = Math.max(0, originalTotal - deductTotal);
+    // 인원수: 수동 입력 우선, 없으면 name에서 자동 파싱, 최소 1
+    const personCountRaw = parseNum(c.personCount);
+    const personCount = personCountRaw > 0 ? personCountRaw : parsePersonCountFromName(c.name);
+    const perPerson = personCount > 0 ? Math.round(originalTotal / personCount) : originalTotal;
+    const perPersonDeduct = personCount > 0 ? Math.round(deductTotal / personCount) : deductTotal;
+    const perPersonRefund = Math.max(0, perPerson - perPersonDeduct);
+    // 각 공제 항목 1인당 금액
+    const deductionsPerPerson = (c.deductions || []).map(d => ({
+      ...d,
+      _amountPer: personCount > 0 ? Math.round(parseNum(d.amount) / personCount) : parseNum(d.amount),
+      _amountTotal: parseNum(d.amount),
+    }));
+    return {
+      ...c,
+      _personCount: personCount,
+      _original: originalTotal,
+      _originalPer: perPerson,
+      _deductTotal: deductTotal,
+      _deductTotalPer: perPersonDeduct,
+      _refundAmt: refundTotal,
+      _refundAmtPer: perPersonRefund,
+      _deductionsCalc: deductionsPerPerson,
+    };
   });
   const refundGrandTotal = refundCustomerData.reduce((s, c) => s + c._refundAmt, 0);
 
@@ -3541,9 +3573,13 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                 <div key={ci} style={{ ...cardStyle, border: "1px solid #e0e0e0" }}>
                   {/* 고객 헤더 */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: `2px solid ${COLORS.accent}`, paddingBottom: "6px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, flexWrap: "wrap" }}>
                       <span style={{ fontSize: "13px", fontWeight: "800", color: COLORS.accent, whiteSpace: "nowrap" }}>고객 {ci + 1}</span>
-                      <input style={{ ...fieldStyle, flex: 1, fontWeight: "700" }} value={c.name} onChange={e => updateRefundCustomer(ci, "name", e.target.value)} placeholder="고객명 (예: 문미정님)" />
+                      <input style={{ ...fieldStyle, flex: 2, fontWeight: "700", minWidth: "160px" }} value={c.name} onChange={e => updateRefundCustomer(ci, "name", e.target.value)} placeholder="고객명 (예: 박곤옥님 외 5분)" />
+                      <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                        <input style={{ ...smFieldStyle, width: "50px", textAlign: "center", fontWeight: "700" }} value={c.personCount || ""} onChange={e => updateRefundCustomer(ci, "personCount", e.target.value.replace(/\D/g,''))} placeholder={String(parsePersonCountFromName(c.name) || 1)} title="인원수 (빈칸이면 고객명에서 자동 파싱)" />
+                        <span style={{ fontSize: "12px", color: "#555", fontWeight: "700" }}>인</span>
+                      </div>
                     </div>
                     {(invoice.refundCustomers || []).length > 1 && (
                       <button onClick={() => removeRefundCustomer(ci)} style={{ marginLeft: "8px", background: "#e74c3c", color: "#fff", border: "none", borderRadius: "6px", padding: "6px 10px", fontSize: "11px", cursor: "pointer", flexShrink: 0 }}>삭제</button>
@@ -3552,14 +3588,19 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
 
                   {/* 상품가 + 구성 */}
                   <div style={{ marginBottom: "12px", padding: "10px 12px", background: "#f9f9f9", borderRadius: "6px" }}>
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", whiteSpace: "nowrap" }}>상품가 합계</span>
+                    <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", whiteSpace: "nowrap" }}>상품가 총액</span>
                       <input style={{ ...smFieldStyle, flex: 1, textAlign: "right", fontWeight: "700" }} value={c.originalPrice} onChange={e => updateRefundCustomer(ci, "originalPrice", autoFmtPrice(e.target.value))} placeholder="0" />
                       <span style={{ fontSize: "12px", color: "#888" }}>원</span>
                     </div>
+                    {parseNum(c.originalPrice) > 0 && (() => {
+                      const pc = parseNum(c.personCount) > 0 ? parseNum(c.personCount) : parsePersonCountFromName(c.name);
+                      const per = pc > 0 ? Math.round(parseNum(c.originalPrice) / pc) : 0;
+                      return <div style={{ fontSize: "10px", color: "#888", textAlign: "right", marginBottom: "6px" }}>= 1인당 ₩{fmtNum(per)} × {pc}인</div>;
+                    })()}
                     {/* 세부 구성 */}
                     <div style={{ borderTop: "1px dashed #ddd", paddingTop: "8px" }}>
-                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "5px" }}>상품가 구성 (세부 내역)</div>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "5px" }}>상품가 구성 (세부 내역 - 선택)</div>
                       {(c.priceBreakdown || []).map((b, bi) => (
                         <div key={bi} style={{ display: "flex", gap: "5px", marginBottom: "3px", alignItems: "center" }}>
                           <input style={{ ...smFieldStyle, flex: 2, fontSize: "11px" }} value={b.name} onChange={e => updateRefundCustBreakdown(ci, bi, "name", e.target.value)} placeholder="예: 항공료, 지상비" />
@@ -3575,10 +3616,10 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
 
                   {/* 공제 항목 */}
                   <div style={{ marginBottom: "4px" }}>
-                    <div style={{ fontSize: "11px", fontWeight: "700", color: "#c0392b", marginBottom: "6px" }}>공제 항목</div>
+                    <div style={{ fontSize: "11px", fontWeight: "700", color: "#c0392b", marginBottom: "6px" }}>공제 항목 <span style={{ fontWeight: "500", color: "#888", fontSize: "10px" }}>(총액 입력 · 1인당 자동 계산)</span></div>
                     <div style={{ display: "flex", gap: "6px", padding: "4px 6px", background: "#f0f0f0", borderRadius: "4px", marginBottom: "4px", fontSize: "10px", color: "#999" }}>
                       <span style={{ flex: 3 }}>항목명</span>
-                      <span style={{ flex: 1, textAlign: "right" }}>금액</span>
+                      <span style={{ flex: 1, textAlign: "right" }}>총 금액</span>
                       <span style={{ width: "20px" }} />
                     </div>
                     {(c.deductions || []).map((d, di) => (
@@ -3750,100 +3791,100 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
           </div>
 
           {/* 환불 계산 내역 */}
-          {(() => {
-            // 컬럼 노출 여부: 단 한 명이라도 값이 있으면 컬럼 표시
-            const showOriginal  = refundCustomerData.some(c => c._original > 0);
-            const showBreakdown = refundCustomerData.some(c => (c.priceBreakdown || []).some(b => b.name));
-            // 전체 컬럼 수 계산 (고객명 + 상품가? + 구성? + 공제항목 + 공제금액 + 환불예정액)
-            const totalCols = 1 + (showOriginal ? 1 : 0) + (showBreakdown ? 1 : 0) + 2 + 1;
-            return (
-              <div style={{ padding: "4px 30px 16px" }}>
-                <div style={{ fontSize: "11px", fontWeight: "800", color: "#555", letterSpacing: "2px", marginBottom: "8px" }}>● 환불 계산 내역</div>
-                <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #ddd" }}>
-                  <thead>
-                    <tr>
-                      <th style={thR("90px")}>고객명</th>
-                      {showOriginal   && <th style={thR("85px")}>상품가</th>}
-                      {showBreakdown  && <th style={thR("140px")}>상품가 구성</th>}
-                      <th style={thR()}>공제 항목</th>
-                      <th style={thR("100px")}>공제 금액</th>
-                      <th style={{ ...thR("105px"), background: "#7a0000", borderRight: "none" }}>환불 예정액</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {refundCustomerData.map((c, ci) => {
-                      const deds = (c.deductions || []).filter(d => d.name);
-                      const bds  = (c.priceBreakdown || []).filter(b => b.name);
-                      const rowCount = Math.max(deds.length, showBreakdown ? bds.length : 0, 1);
-                      const isLastCust = ci === refundCustomerData.length - 1;
-                      // 고객별 배경색 교차
-                      const custBg       = ci % 2 === 0 ? "#fff"    : "#f5f7f5";
-                      const custBgStrong = ci % 2 === 0 ? "#f5f5f5" : "#eaede9";
-                      const custBgRefund = ci % 2 === 0 ? "#fdf5f5" : "#f5ecec";
-                      // 고객 구분선: 마지막 행에만 굵은 선
-                      const custDivider  = isLastCust ? "1px solid #ddd" : "2px solid #999";
-                      return Array.from({ length: rowCount }).map((_, ri) => {
-                        const d = deds[ri];
-                        const b = bds[ri];
-                        const isFirst = ri === 0;
-                        const isLast  = ri === rowCount - 1;
-                        // 행 내부선은 얇게, 고객 마지막 행만 구분선
-                        const rowBorder = isLast ? custDivider : "1px solid #e0e0e0";
-                        return (
-                          <tr key={`${ci}-${ri}`} style={{ background: custBg }}>
-                            {isFirst && (
-                              <td rowSpan={rowCount} style={{ ...tdBase("center"), fontWeight: "700", fontSize: "12px", borderBottom: custDivider, borderLeft: "1px solid #ddd", background: custBgStrong, verticalAlign: "middle" }}>
-                                {c.name}
-                              </td>
-                            )}
-                            {isFirst && showOriginal && (
-                              <td rowSpan={rowCount} style={{ ...tdBase("right"), fontWeight: "700", fontSize: "12px", borderBottom: custDivider, background: custBgStrong, verticalAlign: "middle" }}>
-                                {c._original > 0 ? `₩${fmtNum(c._original)}` : "-"}
-                              </td>
-                            )}
-                            {showBreakdown && (
-                              <td style={{ ...tdBase("left"), borderBottom: rowBorder, fontSize: "11px", color: "#444", background: custBg }}>
-                                {b ? (
-                                  <span style={{ display: "table", width: "100%" }}>
-                                    <span style={{ display: "table-cell" }}>{b.name}</span>
-                                    {parseNum(b.amount) > 0 && <span style={{ display: "table-cell", textAlign: "right", color: "#666" }}>₩{fmtNum(parseNum(b.amount))}</span>}
-                                  </span>
-                                ) : ""}
-                              </td>
-                            )}
-                            {/* 공제 항목 */}
-                            <td style={{ ...tdBase("left"), borderBottom: rowBorder, fontSize: "11px", color: d ? "#333" : "", background: custBg }}>
-                              {d ? d.name : ""}
-                            </td>
-                            {/* 공제 금액 */}
-                            <td style={{ ...tdBase("right"), borderBottom: rowBorder, fontSize: "11px", fontWeight: d ? "600" : "400", color: d ? "#a00" : "", background: custBg }}>
-                              {d && parseNum(d.amount) > 0 ? `- ₩${fmtNum(parseNum(d.amount))}` : ""}
-                            </td>
-                            {/* 환불 예정액: 첫 행에 렌더, rowSpan으로 병합 */}
-                            {isFirst && (
-                              <td rowSpan={rowCount} style={{ ...tdBase("right"), fontWeight: "800", fontSize: "13px", borderBottom: custDivider, borderRight: "1px solid #ddd", verticalAlign: "middle", color: "#7a0000", background: custBgRefund }}>
-                                ₩{fmtNum(c._refundAmt)}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      });
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{ background: "#111" }}>
-                      <td colSpan={totalCols - 1} style={{ padding: "12px 14px", fontWeight: "700", fontSize: "12px", color: "#ccc", textAlign: "right", letterSpacing: "1px", borderRight: "1px solid #333" }}>
-                        총 환불 예정 금액
-                      </td>
-                      <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", fontSize: "18px", color: "#fff", letterSpacing: "0.5px" }}>
-                        ₩ {fmtNum(refundGrandTotal)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+          <div style={{ padding: "4px 30px 16px" }}>
+            <div style={{ fontSize: "11px", fontWeight: "800", color: "#555", letterSpacing: "2px", marginBottom: "10px" }}>● 환불 계산 내역</div>
+
+            {refundCustomerData.map((c, ci) => {
+              const pc = c._personCount || 1;
+              const deds = (c._deductionsCalc || []).filter(d => d.name);
+              const headerLabel = `${pc}인 합계`;
+
+              // 스타일
+              const cardStyle = { border: "1.5px solid #e0e0e0", borderRadius: "8px", overflow: "hidden", marginBottom: "14px", background: "#fff" };
+              const headStyle = { background: "#1a5c3a", color: "#fff", padding: "11px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" };
+              const rowStyle = { display: "grid", gridTemplateColumns: "1fr 150px 150px", borderBottom: "1px solid #e8e8e8", alignItems: "stretch", fontSize: "12px" };
+              const lblCell = { padding: "10px 16px", color: "#222", fontWeight: "500" };
+              const valCell = { padding: "10px 14px", textAlign: "right", fontWeight: "500", color: "#222", borderLeft: "1px solid #eee" };
+              const hRowStyle = { ...rowStyle, background: "#f5f5f5" };
+              const hLblStyle = { ...lblCell, padding: "7px 16px", fontSize: "10px", letterSpacing: "1.5px", color: "#777", fontWeight: "600" };
+              const hValStyle = { ...valCell, padding: "7px 14px", fontSize: "10px", letterSpacing: "1.5px", color: "#777", fontWeight: "600" };
+              const priceRowStyle = { ...rowStyle, background: "#fafaf6" };
+              const priceLblStyle = { ...lblCell, fontWeight: "700" };
+              const priceValUnit = { ...valCell, color: "#555" };
+              const priceValTotal = { ...valCell, fontWeight: "700", color: "#111" };
+              const dedRowStyle = { ...rowStyle };
+              const dedLblStyle = { ...lblCell, paddingLeft: "30px", color: "#555", fontSize: "11.5px" };
+              const dedValStyle = { ...valCell, color: "#c0392b", fontWeight: "500" };
+              const sumRowStyle = { ...rowStyle, background: "#fef4f4" };
+              const sumLblStyle = { ...lblCell, color: "#c0392b", fontWeight: "700" };
+              const sumValStyle = { ...valCell, color: "#c0392b", fontWeight: "700" };
+              const refRowStyle = { display: "grid", gridTemplateColumns: "1fr 150px 150px", background: "linear-gradient(90deg, #1a5c3a, #267250)", alignItems: "stretch", fontSize: "13px" };
+              const refLblStyle = { padding: "14px 16px", color: "#fff", fontWeight: "700" };
+              const refValPer = { padding: "14px 14px", textAlign: "right", color: "#fff", fontWeight: "700", borderLeft: "1px solid rgba(255,255,255,0.15)" };
+              const refValTotal = { padding: "14px 14px", textAlign: "right", color: "#FFD76A", fontWeight: "700", fontSize: "16px", borderLeft: "1px solid rgba(255,255,255,0.15)", textShadow: "0 1px 2px rgba(0,0,0,0.25)" };
+
+              return (
+                <div key={ci} style={cardStyle}>
+                  {/* 그룹 헤더 */}
+                  <div style={headStyle}>
+                    <span style={{ fontWeight: "700", fontSize: "13px" }}>👥 {c.name || "(고객명 미입력)"}</span>
+                    <span style={{ fontSize: "12px", color: "#FFD76A", fontWeight: "700", letterSpacing: "1px" }}>
+                      <span style={{ fontSize: "15px", margin: "0 2px" }}>{pc}</span>인
+                    </span>
+                  </div>
+
+                  {/* 헤더 행 */}
+                  <div style={hRowStyle}>
+                    <div style={hLblStyle}>항목</div>
+                    <div style={hValStyle}>1인당</div>
+                    <div style={hValStyle}>{headerLabel}</div>
+                  </div>
+
+                  {/* 상품가 */}
+                  <div style={priceRowStyle}>
+                    <div style={priceLblStyle}>상품가</div>
+                    <div style={priceValUnit}>{c._original > 0 ? `₩${fmtNum(c._originalPer)}` : "-"}</div>
+                    <div style={priceValTotal}>{c._original > 0 ? `₩${fmtNum(c._original)}` : "-"}</div>
+                  </div>
+
+                  {/* 공제 항목별 */}
+                  {deds.length > 0 && deds.map((d, di) => (
+                    <div key={di} style={dedRowStyle}>
+                      <div style={dedLblStyle}>─ {d.name}</div>
+                      <div style={dedValStyle}>-₩{fmtNum(d._amountPer)}</div>
+                      <div style={dedValStyle}>-₩{fmtNum(d._amountTotal)}</div>
+                    </div>
+                  ))}
+
+                  {/* 공제 합계 */}
+                  {c._deductTotal > 0 && (
+                    <div style={sumRowStyle}>
+                      <div style={sumLblStyle}>공제 합계</div>
+                      <div style={sumValStyle}>-₩{fmtNum(c._deductTotalPer)}</div>
+                      <div style={sumValStyle}>-₩{fmtNum(c._deductTotal)}</div>
+                    </div>
+                  )}
+
+                  {/* 환불 예정액 */}
+                  <div style={refRowStyle}>
+                    <div style={refLblStyle}>💸 환불 예정액</div>
+                    <div style={refValPer}>₩{fmtNum(c._refundAmtPer)}</div>
+                    <div style={refValTotal}>₩{fmtNum(c._refundAmt)}</div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* 총 합계 */}
+            <div style={{ background: "#111", color: "#fff", padding: "18px 26px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+              <div style={{ fontSize: "13px", letterSpacing: "5px", color: "rgba(255,255,255,0.75)", fontWeight: "500" }}>
+                총 <b style={{ color: "#fff", fontWeight: "700", letterSpacing: "2px" }}>환불 예정 금액</b>
               </div>
-            );
-          })()}
+              <div style={{ fontSize: "24px", fontWeight: "700", color: "#FFD76A", letterSpacing: "-0.5px", textShadow: "0 1px 2px rgba(0,0,0,0.35), 0 0 12px rgba(255,215,106,0.25)" }}>
+                <span style={{ fontSize: "16px", opacity: 0.9, marginRight: "3px" }}>₩</span>{fmtNum(refundGrandTotal)}
+              </div>
+            </div>
+          </div>
 
           {/* 환불 예정일 */}
           {invoice.refundDate && (
