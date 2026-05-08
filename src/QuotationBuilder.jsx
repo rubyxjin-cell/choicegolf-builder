@@ -705,20 +705,6 @@ export default function QuotationBuilder({ apiKey }) {
           { name: "항공 취소수수료", amount: "720,000" },
         ],
       },
-      {
-        name: "김종우님 외 1인",
-        personCount: "2",
-        originalPrice: "4,420,000",
-        depositPaid: "4,420,000",
-        priceBreakdown: [
-          { name: "항공료", amount: "960,000" },
-          { name: "지상비", amount: "3,460,000" },
-        ],
-        deductions: [
-          { name: "지상 취소수수료 (지상비의 50%)", amount: "1,730,000" },
-          { name: "항공 취소수수료", amount: "240,000" },
-        ],
-      },
     ],
     refundBankName: "",
     refundBankAccount: "",
@@ -727,8 +713,8 @@ export default function QuotationBuilder({ apiKey }) {
     productName: "[일본] 아오모리&도쿄 벗꽃 골프",
     departureDate: "2026-04-23",
     nights: "4박5일",
-    totalPersons: "8",
-    repName: "박곤옥님 외 5인, 김종우님 외 1인",
+    totalPersons: "6",
+    repName: "박곤옥님 외 5인",
     // --- 인별 모드 ---
     customers: [
       { name: "김명옥님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
