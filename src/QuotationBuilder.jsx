@@ -4148,16 +4148,16 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
               ))}
             </div>
           )}
-          {/* 🆕 포함사항 박스 (이미지 양식) */}
+          {/* 🆕 포함사항 박스 (파란계열) */}
           {(invoice.includedItems || []).some(n => n) && (
-            <div style={{ marginTop: "16px", border: "1px solid #F2D479", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ background: "#FFF7D6", padding: "10px 16px", borderBottom: "1px solid #F2D479", fontSize: "13px", fontWeight: "800", color: "#333" }}>
+            <div style={{ marginTop: "16px", border: "1px solid #93C5FD", borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{ background: "#DBEAFE", padding: "10px 16px", borderBottom: "1px solid #93C5FD", fontSize: "13px", fontWeight: "800", color: "#1E3A8A" }}>
                 포함 사항
               </div>
               <div style={{ padding: "14px 18px", background: "#fff" }}>
                 {(invoice.includedItems || []).filter(n => n).map((item, i) => (
                   <div key={i} style={{ fontSize: "12.5px", color: "#222", padding: "5px 0", display: "flex", alignItems: "flex-start", gap: "8px", lineHeight: "1.65" }}>
-                    <span style={{ color: "#222", flexShrink: 0, fontSize: "10px", marginTop: "5px" }}>●</span>
+                    <span style={{ color: "#2563EB", flexShrink: 0, fontSize: "10px", marginTop: "5px" }}>●</span>
                     <span style={{ flex: 1, wordBreak: "keep-all" }}>{item}</span>
                   </div>
                 ))}
@@ -4165,46 +4165,46 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
             </div>
           )}
 
-          {/* 🆕 불포함사항 박스 (현지 결제 요금표) */}
+          {/* 🆕 불포함사항 박스 (빨간계열) */}
           {((invoice.excludedRoundFees || []).length > 0 || (invoice.excludedOthers || []).length > 0) && (
-            <div style={{ marginTop: "12px", border: "1px solid #F2D479", borderRadius: "4px", overflow: "hidden" }}>
-              <div style={{ background: "#FFF7D6", padding: "10px 16px", borderBottom: "1px solid #F2D479", fontSize: "13px", fontWeight: "800", color: "#333" }}>
-                불포함 사항 <span style={{ fontSize: "11px", fontWeight: "500", color: "#7A5C00", marginLeft: "8px" }}>(현지 결제)</span>
+            <div style={{ marginTop: "12px", border: "1px solid #FCA5A5", borderRadius: "4px", overflow: "hidden" }}>
+              <div style={{ background: "#FEE2E2", padding: "10px 16px", borderBottom: "1px solid #FCA5A5", fontSize: "13px", fontWeight: "800", color: "#991B1B" }}>
+                불포함 사항 <span style={{ fontSize: "11px", fontWeight: "500", color: "#B91C1C", marginLeft: "8px" }}>(현지 결제)</span>
               </div>
               {/* 라운딩 기준별 요금 표 */}
               {(invoice.excludedRoundFees || []).length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                   <thead>
-                    <tr style={{ background: "#FFF7D6" }}>
-                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#333", border: "1px solid #F2D479", width: "120px" }}>　</th>
-                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#333", border: "1px solid #F2D479" }}>18홀 기준</th>
-                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#333", border: "1px solid #F2D479" }}>싱글 사용시</th>
-                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#333", border: "1px solid #F2D479" }}>9홀 기준</th>
+                    <tr style={{ background: "#FEE2E2" }}>
+                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#991B1B", border: "1px solid #FCA5A5", width: "120px" }}>　</th>
+                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#991B1B", border: "1px solid #FCA5A5" }}>18홀 기준</th>
+                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#991B1B", border: "1px solid #FCA5A5" }}>싱글 사용시</th>
+                      <th style={{ padding: "10px", textAlign: "center", fontWeight: "700", color: "#991B1B", border: "1px solid #FCA5A5" }}>9홀 기준</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(invoice.excludedRoundFees || []).map((row, i) => (
                       <tr key={i}>
-                        <td style={{ padding: "12px 10px", textAlign: "center", fontWeight: "700", color: "#333", background: "#FFF7D6", border: "1px solid #F2D479" }}>{row.item}</td>
-                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #F2D479", wordBreak: "keep-all" }}>{row.h18}</td>
-                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #F2D479", wordBreak: "keep-all" }}>{row.single}</td>
-                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #F2D479", wordBreak: "keep-all" }}>{row.h9}</td>
+                        <td style={{ padding: "12px 10px", textAlign: "center", fontWeight: "700", color: "#991B1B", background: "#FEE2E2", border: "1px solid #FCA5A5" }}>{row.item}</td>
+                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #FCA5A5", wordBreak: "keep-all" }}>{row.h18}</td>
+                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #FCA5A5", wordBreak: "keep-all" }}>{row.single}</td>
+                        <td style={{ padding: "12px 10px", textAlign: "center", color: "#222", background: "#fff", border: "1px solid #FCA5A5", wordBreak: "keep-all" }}>{row.h9}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
-              {/* 기타 불포함 항목 (미팅샌딩비/외부라운딩 차량비/싱글룸) */}
+              {/* 기타 불포함 항목 */}
               {(invoice.excludedOthers || []).length > 0 && (
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
                   <tbody>
                     {(invoice.excludedOthers || []).map((row, i) => (
                       <tr key={i}>
-                        <td style={{ padding: "12px 10px", textAlign: "center", fontWeight: "700", color: "#333", background: "#FFF7D6", border: "1px solid #F2D479", width: "120px", verticalAlign: "middle", wordBreak: "keep-all" }}>{row.title}</td>
-                        <td style={{ padding: "12px 14px", color: "#222", background: "#fff", border: "1px solid #F2D479", lineHeight: "1.8" }}>
+                        <td style={{ padding: "12px 10px", textAlign: "center", fontWeight: "700", color: "#991B1B", background: "#FEE2E2", border: "1px solid #FCA5A5", width: "120px", verticalAlign: "middle", wordBreak: "keep-all" }}>{row.title}</td>
+                        <td style={{ padding: "12px 14px", color: "#222", background: "#fff", border: "1px solid #FCA5A5", lineHeight: "1.8" }}>
                           {(row.bullets || []).map((b, bi) => (
                             <div key={bi} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                              <span style={{ color: "#222", fontSize: "10px", marginTop: "5px", flexShrink: 0 }}>●</span>
+                              <span style={{ color: "#DC2626", fontSize: "10px", marginTop: "5px", flexShrink: 0 }}>●</span>
                               <span style={{ flex: 1, wordBreak: "keep-all" }}>{b}</span>
                             </div>
                           ))}
