@@ -688,7 +688,7 @@ export default function QuotationBuilder({ apiKey }) {
 
   // === INVOICE STATE ===
   const [invoice, setInvoice] = useState({
-    invMode: "person", // "person" (인별) or "item" (항목별) or "refund" (환불)
+    invMode: "item", // "person" (인별) or "item" (항목별) or "refund" (환불)
     // --- 환불 모드 ---
     refundCustomers: [
       { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
@@ -711,21 +711,26 @@ export default function QuotationBuilder({ apiKey }) {
     defaultDeposit: "",
     // --- 항목별 모드 ---
     items: [
-      { name: "2/26 구마모토 골프", unitPrice: "1,880,000", qty: "4" },
-      { name: "항공 취소수수료", unitPrice: "150,000", qty: "3" },
+      { name: "미션힐 골프 패키지 (5박6일)\n1박 ₩105,000 × 5박", unitPrice: "525,000", qty: "2" },
     ],
     payments: [],
     // --- 공통 ---
     dueDate: "",
-    dueMsg: "까지 잔금 요청 드립니다.",
-    tableNotes: [
-      "※ 1인 단가 ₩525,000 = 1박 ₩105,000 × 5박 (지상비 기준)",
-    ],
-    // 🆕 포함사항 (전용 박스로 별도 표시)
+    dueMsg: "까지 전체 금액 입금 부탁드립니다.",
+    tableNotes: [],
+    // 🆕 포함사항
     includedItems: [
       "골프 : 그린피 + 카트비 (2인 1카트) + 캐디피&팁 (2인 1캐디) - 1일 18홀 기준",
       "숙박 : 미션힐스 리조트 (2인 1실)",
       "식사 : 조식, 중식, 석식 (한식)",
+    ],
+    // 🆕 불포함사항
+    excludedItems: [
+      "왕복 항공료",
+      "현지 송영 (공항 ↔ 호텔)",
+      "여행자 보험",
+      "개인 경비 (미니바, 룸서비스, 기타 부대시설)",
+      "기사 및 가이드 팁",
     ],
     bankName: "하나은행",
     bankAccount: "103-910072-08204",
@@ -787,6 +792,10 @@ export default function QuotationBuilder({ apiKey }) {
   const updateInvoiceIncluded = (idx, value) => setInvoice(p => ({ ...p, includedItems: (p.includedItems || []).map((n, i) => i === idx ? value : n) }));
   const addInvoiceIncluded = () => setInvoice(p => ({ ...p, includedItems: [...(p.includedItems || []), ""] }));
   const removeInvoiceIncluded = (idx) => setInvoice(p => ({ ...p, includedItems: (p.includedItems || []).filter((_, i) => i !== idx) }));
+  // 🆕 불포함사항 helpers
+  const updateInvoiceExcluded = (idx, value) => setInvoice(p => ({ ...p, excludedItems: (p.excludedItems || []).map((n, i) => i === idx ? value : n) }));
+  const addInvoiceExcluded = () => setInvoice(p => ({ ...p, excludedItems: [...(p.excludedItems || []), ""] }));
+  const removeInvoiceExcluded = (idx) => setInvoice(p => ({ ...p, excludedItems: (p.excludedItems || []).filter((_, i) => i !== idx) }));
   const updateInvoiceCancelPolicy = (idx, value) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.map((c, i) => i === idx ? value : c) }));
   const addInvoiceCancelPolicy = () => setInvoice(p => ({ ...p, cancelPolicy: [...p.cancelPolicy, ""] }));
   const removeInvoiceCancelPolicy = (idx) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.filter((_, i) => i !== idx) }));
@@ -3708,17 +3717,34 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         </div>
         )}
 
-        {/* 🆕 포함사항 편집 */}
+        {/* 🆕 포함 / 불포함사항 편집 */}
         {!isRefund && (
         <div style={cardStyle}>
-          {sectionHeader("✅", "포함사항 (노란 박스)")}
-          {(invoice.includedItems || []).map((n, i) => (
-            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px" }}>
-              <input style={{ ...fieldStyle, flex: 1 }} value={n} onChange={e => updateInvoiceIncluded(i, e.target.value)} placeholder="예: 골프 : 그린피 + 카트비 ..." />
-              <button onClick={() => removeInvoiceIncluded(i)} style={{ background: "#e74c3c", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>
+          {sectionHeader("✅", "포함 · 불포함사항")}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            {/* 포함 */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: "800", color: "#16A34A", marginBottom: "6px" }}>✓ 포함사항</div>
+              {(invoice.includedItems || []).map((n, i) => (
+                <div key={i} style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+                  <input style={{ ...fieldStyle, flex: 1, fontSize: "11px" }} value={n} onChange={e => updateInvoiceIncluded(i, e.target.value)} />
+                  <button onClick={() => removeInvoiceIncluded(i)} style={{ background: "#bbb", color: "#fff", border: "none", borderRadius: "4px", padding: "0 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+              <button onClick={addInvoiceIncluded} style={{ marginTop: "2px", padding: "5px", border: "1px dashed #16A34A", borderRadius: "4px", background: "transparent", color: "#16A34A", fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 포함 추가</button>
             </div>
-          ))}
-          <button onClick={addInvoiceIncluded} style={{ marginTop: "4px", padding: "6px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 포함사항 추가</button>
+            {/* 불포함 */}
+            <div>
+              <div style={{ fontSize: "11px", fontWeight: "800", color: "#C4351C", marginBottom: "6px" }}>✕ 불포함사항</div>
+              {(invoice.excludedItems || []).map((n, i) => (
+                <div key={i} style={{ display: "flex", gap: "4px", marginBottom: "4px" }}>
+                  <input style={{ ...fieldStyle, flex: 1, fontSize: "11px" }} value={n} onChange={e => updateInvoiceExcluded(i, e.target.value)} />
+                  <button onClick={() => removeInvoiceExcluded(i)} style={{ background: "#bbb", color: "#fff", border: "none", borderRadius: "4px", padding: "0 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>
+                </div>
+              ))}
+              <button onClick={addInvoiceExcluded} style={{ marginTop: "2px", padding: "5px", border: "1px dashed #C4351C", borderRadius: "4px", background: "transparent", color: "#C4351C", fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 불포함 추가</button>
+            </div>
+          </div>
         </div>
         )}
 
@@ -4077,7 +4103,11 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                 {invItemData.map((it, i) => (
                   <tr key={i}>
                     <td style={tdS("center")}>{i + 1}</td>
-                    <td style={tdS("left", true)}>{it.name}</td>
+                    <td style={{ ...tdS("left", true), whiteSpace: "pre-line", lineHeight: "1.6" }}>
+                      {it.name.split('\n').map((line, li) => (
+                        <div key={li} style={li > 0 ? { fontSize: "11px", color: "#888", fontWeight: "400", marginTop: "2px" } : {}}>{line}</div>
+                      ))}
+                    </td>
                     <td style={tdS("right")}>₩{fmtNum(it._up)}</td>
                     <td style={tdS("center")}>{it._qty}</td>
                     <td style={tdS("right", true)}>₩{fmtNum(it._total)}</td>
@@ -4092,10 +4122,10 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                   </tr>
                 ))}
                 <tr style={{ background: "#f9f9f9" }}>
-                  <td colSpan={4} style={{ padding: "10px 8px", fontWeight: "800", borderTop: "2px solid #999", textAlign: "center", fontSize: "12px" }}>
-                    {hasPay ? "총 잔금 요청 금액" : "총 요청 금액"}
+                  <td colSpan={4} style={{ padding: "12px 12px", fontWeight: "800", borderTop: "2px solid #1B4332", textAlign: "center", fontSize: "13px", letterSpacing: "1px", whiteSpace: "nowrap" }}>
+                    {hasPay ? "총 잔금 요청 금액" : "총 입금 요청 금액"}
                   </td>
-                  <td style={{ padding: "10px 6px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #999", fontSize: "16px", color: "#c00" }}>
+                  <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #1B4332", fontSize: "17px", color: "#1B4332", whiteSpace: "nowrap" }}>
                     ₩{fmtNum(invBalance)}
                   </td>
                 </tr>
@@ -4111,20 +4141,41 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
               ))}
             </div>
           )}
-          {/* 🆕 포함사항 박스 */}
-          {(invoice.includedItems || []).length > 0 && (invoice.includedItems || []).some(n => n) && (
-            <div style={{ marginTop: "12px", background: "#FFFBEA", border: "1px solid #F5D77E", borderRadius: "8px", padding: "16px 20px" }}>
-              <div style={{ fontSize: "13px", fontWeight: "800", color: "#7A5C00", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span style={{ background: "#F5D77E", color: "#7A5C00", borderRadius: "3px", padding: "2px 8px", fontSize: "11px", fontWeight: "700" }}>포함사항</span>
-              </div>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                {(invoice.includedItems || []).filter(n => n).map((item, i) => (
-                  <li key={i} style={{ fontSize: "12.5px", color: "#3a2e00", padding: "4px 0 4px 14px", position: "relative", lineHeight: "1.7" }}>
-                    <span style={{ position: "absolute", left: 0, color: "#B8941F", fontWeight: "700" }}>•</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+          {/* 🆕 포함 / 불포함 2단 박스 */}
+          {(((invoice.includedItems || []).some(n => n)) || ((invoice.excludedItems || []).some(n => n))) && (
+            <div style={{ marginTop: "14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+              {/* 포함사항 */}
+              {(invoice.includedItems || []).some(n => n) && (
+                <div style={{ background: "#F0F9F4", border: "1px solid #86C29D", borderRadius: "8px", padding: "14px 16px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: "800", color: "#16A34A", marginBottom: "10px", letterSpacing: "1px", borderBottom: "1px solid #86C29D", paddingBottom: "6px" }}>
+                    ✓  포함사항
+                  </div>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {(invoice.includedItems || []).filter(n => n).map((item, i) => (
+                      <li key={i} style={{ fontSize: "11.5px", color: "#1F4D2D", padding: "3px 0", display: "flex", alignItems: "flex-start", gap: "6px", lineHeight: "1.65" }}>
+                        <span style={{ color: "#16A34A", fontWeight: "700", flexShrink: 0, marginTop: "1px" }}>•</span>
+                        <span style={{ flex: 1, wordBreak: "keep-all" }}>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* 불포함사항 */}
+              {(invoice.excludedItems || []).some(n => n) && (
+                <div style={{ background: "#FEF2F2", border: "1px solid #E5A4A4", borderRadius: "8px", padding: "14px 16px" }}>
+                  <div style={{ fontSize: "12px", fontWeight: "800", color: "#C4351C", marginBottom: "10px", letterSpacing: "1px", borderBottom: "1px solid #E5A4A4", paddingBottom: "6px" }}>
+                    ✕  불포함사항
+                  </div>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    {(invoice.excludedItems || []).filter(n => n).map((item, i) => (
+                      <li key={i} style={{ fontSize: "11.5px", color: "#5A1F0F", padding: "3px 0", display: "flex", alignItems: "flex-start", gap: "6px", lineHeight: "1.65" }}>
+                        <span style={{ color: "#C4351C", fontWeight: "700", flexShrink: 0, marginTop: "1px" }}>•</span>
+                        <span style={{ flex: 1, wordBreak: "keep-all" }}>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
           {/* 기한 안내 */}
