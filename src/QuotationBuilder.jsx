@@ -688,20 +688,45 @@ export default function QuotationBuilder({ apiKey }) {
 
   // === INVOICE STATE ===
   const [invoice, setInvoice] = useState({
-    invMode: "person", // "person" (인별) or "item" (항목별) or "refund" (환불)
+    invMode: "refund", // "person" (인별) or "item" (항목별) or "refund" (환불)
     // --- 환불 모드 ---
     refundCustomers: [
-      { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
+      {
+        name: "박곤옥님 외 5인",
+        personCount: "6",
+        originalPrice: "13,680,000",
+        priceBreakdown: [
+          { name: "항공료", amount: "2,880,000" },
+          { name: "지상비", amount: "10,800,000" },
+        ],
+        deductions: [
+          { name: "지상 취소수수료 (지상비의 50%)", amount: "5,400,000" },
+          { name: "항공 취소수수료", amount: "720,000" },
+        ],
+      },
+      {
+        name: "김종우님 외 1인",
+        personCount: "2",
+        originalPrice: "4,420,000",
+        priceBreakdown: [
+          { name: "항공료", amount: "960,000" },
+          { name: "지상비", amount: "3,460,000" },
+        ],
+        deductions: [
+          { name: "지상 취소수수료 (지상비의 50%)", amount: "1,730,000" },
+          { name: "항공 취소수수료", amount: "240,000" },
+        ],
+      },
     ],
     refundBankName: "",
     refundBankAccount: "",
     refundBankHolder: "",
     refundDate: "",
-    productName: "미야코지마 3색골프",
-    departureDate: "2026-02-27",
-    nights: "3박4일",
-    totalPersons: "2",
-    repName: "김명옥님 외 1인",
+    productName: "[일본] 아오모리&도쿄 벗꽃 골프",
+    departureDate: "2026-04-23",
+    nights: "4박5일",
+    totalPersons: "8",
+    repName: "박곤옥님 외 5인, 김종우님 외 1인",
     // --- 인별 모드 ---
     customers: [
       { name: "김명옥님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
