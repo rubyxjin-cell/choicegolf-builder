@@ -688,53 +688,43 @@ export default function QuotationBuilder({ apiKey }) {
 
   // === INVOICE STATE ===
   const [invoice, setInvoice] = useState({
-    invMode: "refund", // "person" (인별) or "item" (항목별) or "refund" (환불)
+    invMode: "person", // "person" (인별) or "item" (항목별) or "refund" (환불)
     // --- 환불 모드 ---
     refundCustomers: [
-      {
-        name: "김종우님 외 1인",
-        personCount: "2",
-        originalPrice: "4,420,000",
-        depositPaid: "4,420,000",
-        priceBreakdown: [
-          { name: "항공료", amount: "960,000" },
-          { name: "지상비", amount: "3,460,000" },
-        ],
-        deductions: [
-          { name: "지상 취소수수료 (지상비의 50%)", amount: "1,730,000" },
-          { name: "항공 취소수수료", amount: "240,000" },
-        ],
-      },
+      { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
     ],
     refundBankName: "",
     refundBankAccount: "",
     refundBankHolder: "",
     refundDate: "",
-    productName: "[일본] 아오모리&도쿄 벗꽃 골프",
-    departureDate: "2026-04-23",
-    nights: "4박5일",
+    productName: "[태국] 칸차나부리 미션힐 골프클럽",
+    departureDate: "2027-01-20",
+    nights: "5박6일",
     totalPersons: "2",
-    repName: "김종우님 외 1인",
+    repName: "김성구님 외 1인",
     // --- 인별 모드 ---
     customers: [
-      { name: "김명옥님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
-      { name: "박덕훈님", price: "2,460,000", deposit: "800,000", midPay: "", linked: false },
+      { name: "김성구님", price: "525,000", deposit: "", midPay: "", linked: false },
+      { name: "동반 1인", price: "525,000", deposit: "", midPay: "", linked: false },
     ],
-    defaultPrice: "2,460,000",
-    defaultDeposit: "800,000",
+    defaultPrice: "525,000",
+    defaultDeposit: "",
     // --- 항목별 모드 ---
     items: [
       { name: "2/26 구마모토 골프", unitPrice: "1,880,000", qty: "4" },
       { name: "항공 취소수수료", unitPrice: "150,000", qty: "3" },
     ],
-    payments: [
-      { label: "예약금", amount: "4,800,000" },
-      { label: "중도금", amount: "4,000,000" },
-    ],
+    payments: [],
     // --- 공통 ---
-    dueDate: "2026-02-20",
+    dueDate: "",
     dueMsg: "까지 잔금 요청 드립니다.",
-    tableNotes: [],
+    tableNotes: [
+      "※ 1인 단가 ₩525,000 = 1박 ₩105,000 × 5박 (지상비 기준)",
+      "[포함사항]",
+      "● 골프 : 그린피 + 카트비 (2인 1카트) + 캐디피&팁 (2인 1캐디) - 1일 18홀 기준",
+      "● 숙박 : 미션힐스 리조트 (2인 1실)",
+      "● 식사 : 조식, 중식, 석식 (한식)",
+    ],
     bankName: "하나은행",
     bankAccount: "103-910072-08204",
     bankHolder: "㈜초이스골프",
@@ -797,7 +787,7 @@ export default function QuotationBuilder({ apiKey }) {
   // --- 환불 모드 helpers ---
   // --- 환불 고객별 helpers ---
   const updateRefundCustomer = (ci, field, value) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i === ci ? { ...c, [field]: value } : c) }));
-  const addRefundCustomer = () => setInvoice(p => ({ ...p, refundCustomers: [...p.refundCustomers, { name: "", personCount: "", originalPrice: "", depositPaid: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] }] }));
+  const addRefundCustomer = () => setInvoice(p => ({ ...p, refundCustomers: [...p.refundCustomers, { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] }] }));
   const removeRefundCustomer = (ci) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.filter((_, i) => i !== ci) }));
   const updateRefundCustBreakdown = (ci, bi, field, value) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i !== ci ? c : { ...c, priceBreakdown: (c.priceBreakdown || []).map((b, j) => j === bi ? { ...b, [field]: value } : b) }) }));
   const addRefundCustBreakdown = (ci) => setInvoice(p => ({ ...p, refundCustomers: p.refundCustomers.map((c, i) => i !== ci ? c : { ...c, priceBreakdown: [...(c.priceBreakdown || []), { name: "", amount: "" }] }) }));
@@ -867,44 +857,30 @@ export default function QuotationBuilder({ apiKey }) {
   };
   const refundCustomerData = (invoice.refundCustomers || []).map(c => {
     const originalTotal = parseNum(c.originalPrice);
-    const depositTotal = parseNum(c.depositPaid);
     const deductTotal = (c.deductions || []).reduce((s, d) => s + parseNum(d.amount), 0);
-    // 🆕 환불 기준: 기입금이 입력되면 기입금 - 공제, 아니면 상품가 - 공제
-    const refundBase = depositTotal > 0 ? depositTotal : originalTotal;
-    const refundTotal = Math.max(0, refundBase - deductTotal);
+    const refundTotal = Math.max(0, originalTotal - deductTotal);
     // 인원수: 수동 입력 우선, 없으면 name에서 자동 파싱, 최소 1
     const personCountRaw = parseNum(c.personCount);
     const personCount = personCountRaw > 0 ? personCountRaw : parsePersonCountFromName(c.name);
     const perPerson = personCount > 0 ? Math.round(originalTotal / personCount) : originalTotal;
-    const perPersonDeposit = personCount > 0 ? Math.round(depositTotal / personCount) : depositTotal;
     const perPersonDeduct = personCount > 0 ? Math.round(deductTotal / personCount) : deductTotal;
-    const perPersonRefundBase = depositTotal > 0 ? perPersonDeposit : perPerson;
-    const perPersonRefund = Math.max(0, perPersonRefundBase - perPersonDeduct);
+    const perPersonRefund = Math.max(0, perPerson - perPersonDeduct);
     // 각 공제 항목 1인당 금액
     const deductionsPerPerson = (c.deductions || []).map(d => ({
       ...d,
       _amountPer: personCount > 0 ? Math.round(parseNum(d.amount) / personCount) : parseNum(d.amount),
       _amountTotal: parseNum(d.amount),
     }));
-    // 🆕 상품가 구성 항목 1인당 금액 (항공료/지상비 등)
-    const breakdownPerPerson = (c.priceBreakdown || []).filter(b => b.name && parseNum(b.amount) > 0).map(b => ({
-      ...b,
-      _amountPer: personCount > 0 ? Math.round(parseNum(b.amount) / personCount) : parseNum(b.amount),
-      _amountTotal: parseNum(b.amount),
-    }));
     return {
       ...c,
       _personCount: personCount,
       _original: originalTotal,
       _originalPer: perPerson,
-      _deposit: depositTotal,
-      _depositPer: perPersonDeposit,
       _deductTotal: deductTotal,
       _deductTotalPer: perPersonDeduct,
       _refundAmt: refundTotal,
       _refundAmtPer: perPersonRefund,
       _deductionsCalc: deductionsPerPerson,
-      _breakdownCalc: breakdownPerPerson,
     };
   });
   const refundGrandTotal = refundCustomerData.reduce((s, c) => s + c._refundAmt, 0);
@@ -3625,14 +3601,8 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                       const per = pc > 0 ? Math.round(parseNum(c.originalPrice) / pc) : 0;
                       return <div style={{ fontSize: "10px", color: "#888", textAlign: "right", marginBottom: "6px" }}>= 1인당 ₩{fmtNum(per)} × {pc}인</div>;
                     })()}
-                    {/* 🆕 기 입금액 */}
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px", paddingTop: "8px", borderTop: "1px dashed #ddd" }}>
-                      <span style={{ fontSize: "12px", fontWeight: "700", color: "#16A34A", whiteSpace: "nowrap" }}>기 입금액</span>
-                      <input style={{ ...smFieldStyle, flex: 1, textAlign: "right", fontWeight: "700", color: "#16A34A" }} value={c.depositPaid || ""} onChange={e => updateRefundCustomer(ci, "depositPaid", autoFmtPrice(e.target.value))} placeholder="(미입력시 상품가 전액으로 계산)" />
-                      <span style={{ fontSize: "12px", color: "#888" }}>원</span>
-                    </div>
                     {/* 세부 구성 */}
-                    <div style={{ borderTop: "1px dashed #ddd", paddingTop: "8px", marginTop: "8px" }}>
+                    <div style={{ borderTop: "1px dashed #ddd", paddingTop: "8px" }}>
                       <div style={{ fontSize: "10px", fontWeight: "700", color: "#888", marginBottom: "5px" }}>상품가 구성 (세부 내역 - 선택)</div>
                       {(c.priceBreakdown || []).map((b, bi) => (
                         <div key={bi} style={{ display: "flex", gap: "5px", marginBottom: "3px", alignItems: "center" }}>
@@ -3880,15 +3850,6 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                     <div style={priceValTotal}>{c._original > 0 ? `₩${fmtNum(c._original)}` : "-"}</div>
                   </div>
 
-                  {/* 🆕 상품가 구성 (항공료/지상비) */}
-                  {(c._breakdownCalc || []).length > 0 && (c._breakdownCalc || []).map((b, bi) => (
-                    <div key={`bd-${bi}`} style={{ ...rowStyle, background: "#fcfcf8" }}>
-                      <div style={{ ...lblCell, paddingLeft: "30px", color: "#666", fontSize: "11.5px", fontWeight: "500" }}>└ {b.name}</div>
-                      <div style={{ ...valCell, color: "#666", fontSize: "11.5px" }}>₩{fmtNum(b._amountPer)}</div>
-                      <div style={{ ...valCell, color: "#666", fontSize: "11.5px" }}>₩{fmtNum(b._amountTotal)}</div>
-                    </div>
-                  ))}
-
                   {/* 공제 항목별 */}
                   {deds.length > 0 && deds.map((d, di) => (
                     <div key={di} style={dedRowStyle}>
@@ -3904,15 +3865,6 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                       <div style={sumLblStyle}>공제 합계</div>
                       <div style={sumValStyle}>-₩{fmtNum(c._deductTotalPer)}</div>
                       <div style={sumValStyle}>-₩{fmtNum(c._deductTotal)}</div>
-                    </div>
-                  )}
-
-                  {/* 🆕 기입금 (입력된 경우에만 표시) */}
-                  {c._deposit > 0 && (
-                    <div style={{ ...rowStyle, background: "#f0f9f4" }}>
-                      <div style={{ ...lblCell, fontWeight: "700", color: "#16A34A" }}>기 입금액</div>
-                      <div style={{ ...valCell, color: "#16A34A", fontWeight: "600" }}>₩{fmtNum(c._depositPer)}</div>
-                      <div style={{ ...valCell, color: "#16A34A", fontWeight: "700" }}>₩{fmtNum(c._deposit)}</div>
                     </div>
                   )}
 
