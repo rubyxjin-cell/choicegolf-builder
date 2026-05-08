@@ -880,6 +880,12 @@ export default function QuotationBuilder({ apiKey }) {
       _amountPer: personCount > 0 ? Math.round(parseNum(d.amount) / personCount) : parseNum(d.amount),
       _amountTotal: parseNum(d.amount),
     }));
+    // 🆕 상품가 구성 항목 1인당 금액 (항공료/지상비 등)
+    const breakdownPerPerson = (c.priceBreakdown || []).filter(b => b.name && parseNum(b.amount) > 0).map(b => ({
+      ...b,
+      _amountPer: personCount > 0 ? Math.round(parseNum(b.amount) / personCount) : parseNum(b.amount),
+      _amountTotal: parseNum(b.amount),
+    }));
     return {
       ...c,
       _personCount: personCount,
@@ -890,6 +896,7 @@ export default function QuotationBuilder({ apiKey }) {
       _refundAmt: refundTotal,
       _refundAmtPer: perPersonRefund,
       _deductionsCalc: deductionsPerPerson,
+      _breakdownCalc: breakdownPerPerson,
     };
   });
   const refundGrandTotal = refundCustomerData.reduce((s, c) => s + c._refundAmt, 0);
@@ -3858,6 +3865,15 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                     <div style={priceValUnit}>{c._original > 0 ? `₩${fmtNum(c._originalPer)}` : "-"}</div>
                     <div style={priceValTotal}>{c._original > 0 ? `₩${fmtNum(c._original)}` : "-"}</div>
                   </div>
+
+                  {/* 🆕 상품가 구성 (항공료/지상비) */}
+                  {(c._breakdownCalc || []).length > 0 && (c._breakdownCalc || []).map((b, bi) => (
+                    <div key={`bd-${bi}`} style={{ ...rowStyle, background: "#fcfcf8" }}>
+                      <div style={{ ...lblCell, paddingLeft: "30px", color: "#666", fontSize: "11.5px", fontWeight: "500" }}>└ {b.name}</div>
+                      <div style={{ ...valCell, color: "#666", fontSize: "11.5px" }}>₩{fmtNum(b._amountPer)}</div>
+                      <div style={{ ...valCell, color: "#666", fontSize: "11.5px" }}>₩{fmtNum(b._amountTotal)}</div>
+                    </div>
+                  ))}
 
                   {/* 공제 항목별 */}
                   {deds.length > 0 && deds.map((d, di) => (
