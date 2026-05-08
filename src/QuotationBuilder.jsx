@@ -720,10 +720,12 @@ export default function QuotationBuilder({ apiKey }) {
     dueMsg: "까지 잔금 요청 드립니다.",
     tableNotes: [
       "※ 1인 단가 ₩525,000 = 1박 ₩105,000 × 5박 (지상비 기준)",
-      "[포함사항]",
-      "● 골프 : 그린피 + 카트비 (2인 1카트) + 캐디피&팁 (2인 1캐디) - 1일 18홀 기준",
-      "● 숙박 : 미션힐스 리조트 (2인 1실)",
-      "● 식사 : 조식, 중식, 석식 (한식)",
+    ],
+    // 🆕 포함사항 (전용 박스로 별도 표시)
+    includedItems: [
+      "골프 : 그린피 + 카트비 (2인 1카트) + 캐디피&팁 (2인 1캐디) - 1일 18홀 기준",
+      "숙박 : 미션힐스 리조트 (2인 1실)",
+      "식사 : 조식, 중식, 석식 (한식)",
     ],
     bankName: "하나은행",
     bankAccount: "103-910072-08204",
@@ -781,6 +783,10 @@ export default function QuotationBuilder({ apiKey }) {
   const updateInvoiceTableNote = (idx, value) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.map((n, i) => i === idx ? value : n) }));
   const addInvoiceTableNote = () => setInvoice(p => ({ ...p, tableNotes: [...p.tableNotes, ""] }));
   const removeInvoiceTableNote = (idx) => setInvoice(p => ({ ...p, tableNotes: p.tableNotes.filter((_, i) => i !== idx) }));
+  // 🆕 포함사항 helpers
+  const updateInvoiceIncluded = (idx, value) => setInvoice(p => ({ ...p, includedItems: (p.includedItems || []).map((n, i) => i === idx ? value : n) }));
+  const addInvoiceIncluded = () => setInvoice(p => ({ ...p, includedItems: [...(p.includedItems || []), ""] }));
+  const removeInvoiceIncluded = (idx) => setInvoice(p => ({ ...p, includedItems: (p.includedItems || []).filter((_, i) => i !== idx) }));
   const updateInvoiceCancelPolicy = (idx, value) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.map((c, i) => i === idx ? value : c) }));
   const addInvoiceCancelPolicy = () => setInvoice(p => ({ ...p, cancelPolicy: [...p.cancelPolicy, ""] }));
   const removeInvoiceCancelPolicy = (idx) => setInvoice(p => ({ ...p, cancelPolicy: p.cancelPolicy.filter((_, i) => i !== idx) }));
@@ -3702,6 +3708,20 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         </div>
         )}
 
+        {/* 🆕 포함사항 편집 */}
+        {!isRefund && (
+        <div style={cardStyle}>
+          {sectionHeader("✅", "포함사항 (노란 박스)")}
+          {(invoice.includedItems || []).map((n, i) => (
+            <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px" }}>
+              <input style={{ ...fieldStyle, flex: 1 }} value={n} onChange={e => updateInvoiceIncluded(i, e.target.value)} placeholder="예: 골프 : 그린피 + 카트비 ..." />
+              <button onClick={() => removeInvoiceIncluded(i)} style={{ background: "#e74c3c", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 8px", fontSize: "11px", cursor: "pointer" }}>✕</button>
+            </div>
+          ))}
+          <button onClick={addInvoiceIncluded} style={{ marginTop: "4px", padding: "6px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: COLORS.accent, fontWeight: "700", fontSize: "11px", cursor: "pointer", width: "100%" }}>+ 포함사항 추가</button>
+        </div>
+        )}
+
         {/* 결제안내 */}
         {!isRefund && (
         <div style={cardStyle}>
@@ -4089,6 +4109,22 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
               {invoice.tableNotes.filter(n => n).map((note, i) => (
                 <div key={i} style={{ fontSize: "11px", color: "#333", textAlign: "center", padding: "4px 10px", background: "#f9f9f9", border: "1px solid #ddd", borderTop: i === 0 ? undefined : "none", lineHeight: "1.6" }}>{note}</div>
               ))}
+            </div>
+          )}
+          {/* 🆕 포함사항 박스 */}
+          {(invoice.includedItems || []).length > 0 && (invoice.includedItems || []).some(n => n) && (
+            <div style={{ marginTop: "12px", background: "#FFFBEA", border: "1px solid #F5D77E", borderRadius: "8px", padding: "16px 20px" }}>
+              <div style={{ fontSize: "13px", fontWeight: "800", color: "#7A5C00", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ background: "#F5D77E", color: "#7A5C00", borderRadius: "3px", padding: "2px 8px", fontSize: "11px", fontWeight: "700" }}>포함사항</span>
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {(invoice.includedItems || []).filter(n => n).map((item, i) => (
+                  <li key={i} style={{ fontSize: "12.5px", color: "#3a2e00", padding: "4px 0 4px 14px", position: "relative", lineHeight: "1.7" }}>
+                    <span style={{ position: "absolute", left: 0, color: "#B8941F", fontWeight: "700" }}>•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
           {/* 기한 안내 */}
