@@ -688,7 +688,11 @@ export default function QuotationBuilder({ apiKey }) {
 
   // === INVOICE STATE ===
   const [invoice, setInvoice] = useState({
-    invMode: "item", // "person" (인별) or "item" (항목별) or "refund" (환불)
+    invMode: "item", // "person" (인별) or "item" (항목별) or "refund" (환불) or "receipt" (영수증)
+    // --- 영수증 모드 ---
+    receiptNo: "",
+    receiptDate: "",
+    receiptIssuer: "(주)초이스골프",
     // --- 환불 모드 ---
     refundCustomers: [
       { name: "", personCount: "", originalPrice: "", priceBreakdown: [{ name: "", amount: "" }], deductions: [{ name: "", amount: "" }] },
@@ -1151,7 +1155,7 @@ export default function QuotationBuilder({ apiKey }) {
       const dataUrl = canvas.toDataURL("image/jpeg", 0.95);
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `${invoice.invMode === "refund" ? "환불안내서" : "인보이스"}_${invoice.repName || invoice.productName || "초이스골프"}.jpg`;
+      a.download = `${invoice.invMode === "refund" ? "환불안내서" : (invoice.invMode === "receipt" ? "영수증" : "인보이스")}_${invoice.repName || invoice.productName || "초이스골프"}.jpg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -3438,6 +3442,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
     const sectionHeader = (icon, title) => <div style={{ fontSize: "14px", fontWeight: "800", color: COLORS.accent, marginBottom: "12px", borderBottom: `2px solid ${COLORS.accent}`, paddingBottom: "6px" }}>{icon} {title}</div>;
     const isPerson = invoice.invMode === "person";
     const isRefund = invoice.invMode === "refund";
+    const isReceipt = invoice.invMode === "receipt";
     return (
       <div>
         {/* 모드 선택 */}
@@ -3446,17 +3451,23 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
             { key: "person", icon: "👤", label: "고객별 청구", desc: "이름별로 상품가/예약금/잔금 입력" },
             { key: "item", icon: "📦", label: "항목별 청구", desc: "상품/수수료 단위 + 기입금 차감" },
             { key: "refund", icon: "💸", label: "환불 안내", desc: "기입금 - 공제 = 환불 예정액" },
-          ].map(m => (
+            { key: "receipt", icon: "🧾", label: "영수증", desc: "결제 완료 내역 증빙 발행" },
+          ].map(m => {
+            const isActive = invoice.invMode === m.key;
+            const activeColor = m.key === "refund" ? "#c0392b" : (m.key === "receipt" ? "#1B4332" : COLORS.accent);
+            const activeBg = m.key === "refund" ? "#fdf0f0" : (m.key === "receipt" ? "#e8f0e8" : COLORS.accentLight);
+            return (
             <button key={m.key} onClick={() => updateInvoice("invMode", m.key)} style={{
-              flex: 1, padding: "14px 12px", border: invoice.invMode === m.key ? `2px solid ${m.key === "refund" ? "#c0392b" : COLORS.accent}` : "2px solid #ddd",
-              borderRadius: "10px", background: invoice.invMode === m.key ? (m.key === "refund" ? "#fdf0f0" : COLORS.accentLight) : "#fff",
+              flex: 1, padding: "14px 12px", border: isActive ? `2px solid ${activeColor}` : "2px solid #ddd",
+              borderRadius: "10px", background: isActive ? activeBg : "#fff",
               cursor: "pointer", textAlign: "left", fontFamily: "inherit",
             }}>
               <div style={{ fontSize: "18px" }}>{m.icon}</div>
-              <div style={{ fontSize: "14px", fontWeight: "800", color: invoice.invMode === m.key ? (m.key === "refund" ? "#c0392b" : COLORS.accent) : "#666", marginTop: "4px" }}>{m.label}</div>
+              <div style={{ fontSize: "14px", fontWeight: "800", color: isActive ? activeColor : "#666", marginTop: "4px" }}>{m.label}</div>
               <div style={{ fontSize: "10px", color: "#999", marginTop: "2px" }}>{m.desc}</div>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* 예약정보 */}
@@ -3702,8 +3713,74 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
           </>
         )}
 
+        {/* ===== 영수증 모드 ===== */}
+        {isReceipt && (
+          <>
+            <div style={cardStyle}>
+              {sectionHeader("🧾", "영수증 정보")}
+              <div style={rowStyle}>
+                <div style={{ flex: 1 }}><label style={labelStyle}>영수증 번호</label><input style={fieldStyle} value={invoice.receiptNo} onChange={e => updateInvoice("receiptNo", e.target.value)} placeholder="자동 생성 또는 직접 입력" /></div>
+                <div style={{ flex: 1 }}><label style={labelStyle}>발행일</label><input type="date" style={fieldStyle} value={invoice.receiptDate} onChange={e => updateInvoice("receiptDate", e.target.value)} /></div>
+                <div style={{ flex: 1 }}><label style={labelStyle}>발행자</label><input style={fieldStyle} value={invoice.receiptIssuer} onChange={e => updateInvoice("receiptIssuer", e.target.value)} placeholder="(주)초이스골프" /></div>
+              </div>
+            </div>
+
+            <div style={cardStyle}>
+              {sectionHeader("📦", "상품가 (선택)")}
+              <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>상품가를 입력하면 미수금/환불액이 자동 계산됩니다. 영수만 기록할 경우 비워두세요.</div>
+              <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+                <span style={{ width: "18px", textAlign: "center" }}>No</span>
+                <span style={{ flex: 3 }}>상품명</span>
+                <span style={{ flex: 1, textAlign: "right" }}>단가(1인)</span>
+                <span style={{ width: "40px", textAlign: "center" }}>인원</span>
+                <span style={{ width: "80px", textAlign: "right" }}>TOTAL</span>
+                <span style={{ width: "22px" }} />
+              </div>
+              {invoice.items.map((it, i) => {
+                const total = parseNum(it.unitPrice) * (parseNum(it.qty) || 1);
+                return (
+                  <div key={i} style={{ display: "flex", gap: "5px", marginBottom: "4px", alignItems: "center" }}>
+                    <span style={{ width: "18px", fontSize: "11px", fontWeight: "700", color: "#1B4332", textAlign: "center" }}>{i + 1}</span>
+                    <input style={{ ...smFieldStyle, flex: 3 }} value={it.name} onChange={e => updateInvoiceItem(i, "name", e.target.value)} placeholder="상품명" />
+                    <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={it.unitPrice} onChange={handleItemFieldInput(i, "unitPrice")} placeholder="단가" />
+                    <input style={{ ...smFieldStyle, width: "40px", textAlign: "center", flexShrink: 0 }} value={it.qty} onChange={e => updateInvoiceItem(i, "qty", e.target.value)} placeholder="1" />
+                    <span style={{ width: "80px", textAlign: "right", fontSize: "11px", fontWeight: "700", color: "#333", flexShrink: 0 }}>₩{fmtNum(total)}</span>
+                    {invoice.items.length > 1 ? <button onClick={() => removeInvoiceItem(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button> : <span style={{ width: "22px" }} />}
+                  </div>
+                );
+              })}
+              <button onClick={addInvoiceItem} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: "#1B4332", fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "6px" }}>+ 항목 추가</button>
+            </div>
+
+            <div style={cardStyle}>
+              {sectionHeader("💳", "결제 내역")}
+              <div style={{ fontSize: "10px", color: "#999", marginBottom: "8px" }}>입금된 내역을 항목별로 기록하세요 (예약금/잔금/현금 등). 입금일도 입력 가능합니다.</div>
+              <div style={{ display: "flex", gap: "6px", padding: "5px 8px", background: "#f0f0f0", borderRadius: "6px", marginBottom: "4px", fontSize: "10px", color: "#888" }}>
+                <span style={{ flex: 1 }}>항목</span>
+                <span style={{ flex: 1, textAlign: "right" }}>금액</span>
+                <span style={{ width: "130px", textAlign: "center" }}>입금일</span>
+                <span style={{ width: "22px" }} />
+              </div>
+              {invoice.payments.map((pm, i) => (
+                <div key={i} style={{ display: "flex", gap: "6px", marginBottom: "4px", alignItems: "center" }}>
+                  <input style={{ ...smFieldStyle, flex: 1 }} value={pm.label} onChange={e => updateInvoicePayment(i, "label", e.target.value)} placeholder="예약금 / 잔금 / ..." />
+                  <input style={{ ...smFieldStyle, flex: 1, textAlign: "right" }} value={pm.amount} onChange={e => updateInvoicePayment(i, "amount", autoFmtPrice(e.target.value))} placeholder="금액" />
+                  <input type="date" style={{ ...smFieldStyle, width: "130px" }} value={pm.date || ""} onChange={e => updateInvoicePayment(i, "date", e.target.value)} />
+                  <button onClick={() => removeInvoicePayment(i)} style={{ background: "#aaa", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 6px", fontSize: "10px", cursor: "pointer", flexShrink: 0 }}>✕</button>
+                </div>
+              ))}
+              <button onClick={addInvoicePayment} style={{ width: "100%", padding: "8px", border: "2px dashed #ccc", borderRadius: "6px", background: "transparent", color: "#1B4332", fontWeight: "700", fontSize: "12px", cursor: "pointer", marginTop: "4px" }}>+ 입금 내역 추가</button>
+              <div style={{ marginTop: "10px", padding: "10px", background: "#e8f0e8", borderRadius: "6px", fontSize: "12px", lineHeight: "1.8" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", color: "#1B4332" }}>
+                  <span>총 영수 금액</span><span>₩ {fmtNum(invoice.payments.reduce((s, pm) => s + parseNum(pm.amount), 0))}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* 기한 & 안내 */}
-        {!isRefund && (
+        {!isRefund && !isReceipt && (
         <div style={cardStyle}>
           {sectionHeader("📅", "입금 안내")}
           <div style={rowStyle}>
@@ -3714,7 +3791,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         )}
 
         {/* 테이블 하단 안내문 */}
-        {!isRefund && (
+        {!isRefund && !isReceipt && (
         <div style={cardStyle}>
           {sectionHeader("📝", "요금표 하단 안내문")}
           {invoice.tableNotes.map((n, i) => (
@@ -3728,7 +3805,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         )}
 
         {/* 🆕 포함사항 편집 */}
-        {!isRefund && (
+        {!isRefund && !isReceipt && (
         <div style={cardStyle}>
           {sectionHeader("✅", "포함사항")}
           {(invoice.includedItems || []).map((n, i) => (
@@ -3745,7 +3822,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         )}
 
         {/* 결제안내 */}
-        {!isRefund && (
+        {!isRefund && !isReceipt && (
         <div style={cardStyle}>
           {sectionHeader("🏦", "결제안내")}
           <div style={rowStyle}>
@@ -3757,7 +3834,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         )}
 
         {/* 취소 규정 */}
-        {!isRefund && (
+        {!isRefund && !isReceipt && (
         <div style={cardStyle}>
           {sectionHeader("📌", "취소 및 환불 규정")}
           {invoice.cancelPolicy.map((cp, i) => (
@@ -3778,11 +3855,169 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
     const dateRange = invoice.departureDate ? `${invFormatDate(invoice.departureDate)} ~ ${invFormatDate(invoiceReturnDate)}` : "";
     const isPerson = invoice.invMode === "person";
     const isRefund = invoice.invMode === "refund";
+    const isReceipt = invoice.invMode === "receipt";
     const hasPay = invTotalPaid > 0;
     const thS = { padding: "8px 6px", fontWeight: "700", fontSize: "11px", borderBottom: "1px solid #999", borderRight: "1px solid #ddd", background: "#e8f0e8", textAlign: "center", color: "#333" };
     const tdS = (align, bold) => ({ padding: "7px 6px", textAlign: align || "center", borderBottom: "1px solid #ddd", borderRight: "1px solid #eee", fontWeight: bold ? "700" : "400", fontSize: "12px", color: "#111" });
     const labelTd = { padding: "6px 10px", fontWeight: "700", fontSize: "12px", background: "#f0f0f0", border: "1px solid #ccc", textAlign: "center", color: "#333", width: "80px" };
     const valueTd = { padding: "6px 10px", fontSize: "12px", border: "1px solid #ccc", color: "#111" };
+
+    // ===== 영수증 미리보기 =====
+    if (isReceipt) {
+      const totalReceived = invoice.payments.reduce((s, pm) => s + parseNum(pm.amount), 0);
+      const productTotal = invoice.items.reduce((s, it) => s + parseNum(it.unitPrice) * (parseNum(it.qty) || 1), 0);
+      const balance = productTotal - totalReceived;
+      const fmtRcDate = (s) => {
+        if (!s) return "-";
+        const dd = new Date(s);
+        if (isNaN(dd.getTime())) return s;
+        return `${dd.getFullYear()}.${String(dd.getMonth()+1).padStart(2,"0")}.${String(dd.getDate()).padStart(2,"0")}`;
+      };
+      const receiptNo = invoice.receiptNo || (() => {
+        const now = new Date();
+        return `R${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}`;
+      })();
+
+      return (
+        <div ref={invoiceRef} style={{ background: "#fff", width: "780px", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", margin: "0 auto", boxSizing: "border-box" }}>
+          {renderCompanyHeader()}
+
+          {/* 타이틀 */}
+          <div style={{ padding: "14px 30px 8px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+            <div>
+              <div style={{ fontSize: "16px", fontWeight: "900", color: "#111", letterSpacing: "2px" }}>RECEIPT</div>
+              <div style={{ fontSize: "11px", color: "#888", letterSpacing: "6px", marginTop: "2px" }}>영　수　증</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "10px", color: "#888", letterSpacing: "2px" }}>RECEIPT NO.</div>
+              <div style={{ fontSize: "13px", fontWeight: "800", color: "#1B4332", letterSpacing: "0.5px" }}>{receiptNo}</div>
+            </div>
+          </div>
+
+          {/* 예약정보 */}
+          <div style={{ padding: "4px 30px 10px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 예약정보</div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+              <tbody>
+                <tr>
+                  <td style={labelTd}>고객명</td>
+                  <td style={valueTd}>{invoice.repName}</td>
+                  <td style={labelTd}>담당자</td>
+                  <td style={{ ...valueTd, textAlign: "center" }}>{invoice.contactName} {invoice.contactPhone}</td>
+                </tr>
+                <tr>
+                  <td style={labelTd}>상품명</td>
+                  <td style={valueTd}>{invoice.productName}</td>
+                  <td style={labelTd}>인 원</td>
+                  <td style={{ ...valueTd, textAlign: "center" }}>{invoice.totalPersons}인</td>
+                </tr>
+                <tr>
+                  <td style={labelTd}>여행기간</td>
+                  <td style={valueTd}>{dateRange}</td>
+                  <td style={labelTd}>박 수</td>
+                  <td style={{ ...valueTd, textAlign: "center" }}>{invoice.nights}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 결제내역 */}
+          <div style={{ padding: "6px 30px 6px" }}>
+            <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 결제내역</div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...thS, width: "36px" }}>NO</th>
+                  <th style={thS}>항목</th>
+                  <th style={{ ...thS, width: "120px" }}>입금일</th>
+                  <th style={{ ...thS, width: "140px" }}>금액</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.payments.filter(pm => parseNum(pm.amount) > 0 || pm.label).map((pm, i) => (
+                  <tr key={i}>
+                    <td style={tdS("center")}>{i + 1}</td>
+                    <td style={tdS("left", true)}>{pm.label || "-"}</td>
+                    <td style={tdS("center")}>{fmtRcDate(pm.date)}</td>
+                    <td style={{ ...tdS("right", true), color: "#1B4332" }}>₩{fmtNum(parseNum(pm.amount))}</td>
+                  </tr>
+                ))}
+                {invoice.payments.filter(pm => parseNum(pm.amount) > 0 || pm.label).length === 0 && (
+                  <tr><td colSpan={4} style={{ padding: "20px", textAlign: "center", color: "#999", fontSize: "12px", border: "1px solid #ddd" }}>결제 내역 없음</td></tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: "#f9f9f9" }}>
+                  <td colSpan={3} style={{ padding: "12px 12px", fontWeight: "800", borderTop: "2px solid #1B4332", textAlign: "center", fontSize: "13px", letterSpacing: "1px", whiteSpace: "nowrap" }}>
+                    총 영수 금액
+                  </td>
+                  <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #1B4332", fontSize: "17px", color: "#1B4332", whiteSpace: "nowrap" }}>
+                    ₩{fmtNum(totalReceived)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* 상품가 정산 (상품가가 있을 때만) */}
+          {productTotal > 0 && (
+            <div style={{ padding: "6px 30px 6px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 상품가 정산</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <tbody>
+                  {invoice.items.map((it, i) => {
+                    const total = parseNum(it.unitPrice) * (parseNum(it.qty) || 1);
+                    return (
+                      <tr key={i}>
+                        <td style={{ ...labelTd, width: "auto", textAlign: "left", paddingLeft: "14px" }}>{it.name.split("\n")[0]}</td>
+                        <td style={{ ...valueTd, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₩{fmtNum(parseNum(it.unitPrice))} × {parseNum(it.qty) || 1}</td>
+                        <td style={{ ...valueTd, textAlign: "right", fontWeight: "700", fontVariantNumeric: "tabular-nums", width: "130px" }}>₩{fmtNum(total)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <td style={labelTd}>총 상품가</td>
+                    <td style={{ ...valueTd, textAlign: "right", fontWeight: "800", color: "#111" }} colSpan={2}>₩{fmtNum(productTotal)}</td>
+                  </tr>
+                  <tr>
+                    <td style={labelTd}>기 영수액</td>
+                    <td style={{ ...valueTd, textAlign: "right", color: "#1B4332", fontWeight: "700" }} colSpan={2}>₩{fmtNum(totalReceived)}</td>
+                  </tr>
+                  {balance !== 0 && (
+                    <tr>
+                      <td style={{ ...labelTd, background: balance > 0 ? "#fde8e8" : "#e8f5ee", color: balance > 0 ? "#c00" : "#1B4332" }}>{balance > 0 ? "미수금" : "환불액"}</td>
+                      <td style={{ ...valueTd, textAlign: "right", fontWeight: "900", color: balance > 0 ? "#c00" : "#1B4332", fontSize: "13px" }} colSpan={2}>₩{fmtNum(Math.abs(balance))}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 발행 정보 */}
+          <div style={{ padding: "16px 30px 24px", marginTop: "10px", borderTop: "1px solid #eee" }}>
+            <div style={{ display: "table", width: "100%" }}>
+              <div style={{ display: "table-cell", verticalAlign: "bottom" }}>
+                <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>발행일</div>
+                <div style={{ fontSize: "13px", fontWeight: "700", color: "#111" }}>{fmtRcDate(invoice.receiptDate)}</div>
+              </div>
+              <div style={{ display: "table-cell", verticalAlign: "bottom", textAlign: "right" }}>
+                <div style={{ fontSize: "11px", color: "#888", marginBottom: "3px" }}>발행자</div>
+                <div style={{ display: "inline-block", verticalAlign: "middle" }}>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: "#2d5a3f", letterSpacing: "1px" }}>{invoice.receiptIssuer}</div>
+                </div>
+                <div style={{ display: "inline-block", verticalAlign: "middle", marginLeft: "10px", width: "54px", height: "54px", border: "2px solid #c0392b", borderRadius: "50%", color: "#c0392b", fontSize: "9px", fontWeight: "800", letterSpacing: "1px", lineHeight: "50px", textAlign: "center" }}>대표인</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 푸터 */}
+          <div style={{ background: "#1B4332", color: "#fff", padding: "10px 30px", fontSize: "10px", textAlign: "center", letterSpacing: "1px" }}>
+            ㈜초이스골프 · CHOICE GOLF · 본 영수증은 위 금액을 정히 영수하였음을 증명합니다.
+          </div>
+        </div>
+      );
+    }
 
     // ===== 환불 안내서 미리보기 =====
     if (isRefund) {
