@@ -3882,20 +3882,18 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
         <div ref={invoiceRef} style={{ background: "#fff", width: "780px", fontFamily: "'Malgun Gothic', '맑은 고딕', sans-serif", margin: "0 auto", boxSizing: "border-box" }}>
           {renderCompanyHeader()}
 
-          {/* 타이틀 */}
-          <div style={{ padding: "14px 30px 8px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-            <div>
-              <div style={{ fontSize: "16px", fontWeight: "900", color: "#111", letterSpacing: "2px" }}>RECEIPT</div>
-              <div style={{ fontSize: "11px", color: "#888", letterSpacing: "6px", marginTop: "2px" }}>영　수　증</div>
-            </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "10px", color: "#888", letterSpacing: "2px" }}>RECEIPT NO.</div>
-              <div style={{ fontSize: "13px", fontWeight: "800", color: "#1B4332", letterSpacing: "0.5px" }}>{receiptNo}</div>
+          {/* 타이틀 (가운데 정렬) */}
+          <div style={{ padding: "20px 30px 14px", textAlign: "center", borderBottom: "1px solid #f0f0f0" }}>
+            <div style={{ fontSize: "26px", fontWeight: "900", color: "#1B4332", letterSpacing: "8px" }}>RECEIPT</div>
+            <div style={{ fontSize: "13px", color: "#666", letterSpacing: "10px", marginTop: "4px", fontWeight: "700" }}>영　수　증</div>
+            <div style={{ fontSize: "10px", color: "#888", letterSpacing: "2px", marginTop: "10px" }}>
+              <span>RECEIPT NO. </span>
+              <span style={{ fontWeight: "800", color: "#1B4332" }}>{receiptNo}</span>
             </div>
           </div>
 
           {/* 예약정보 */}
-          <div style={{ padding: "4px 30px 10px" }}>
+          <div style={{ padding: "14px 30px 10px" }}>
             <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 예약정보</div>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
               <tbody>
@@ -3921,7 +3919,45 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
             </table>
           </div>
 
-          {/* 결제내역 */}
+          {/* 상품가 정산 (먼저 보여줘서 전체 금액 파악) */}
+          {productTotal > 0 && (
+            <div style={{ padding: "6px 30px 6px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 상품가 정산</div>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thS, textAlign: "left", paddingLeft: "14px" }}>상품명</th>
+                    <th style={{ ...thS, width: "180px" }}>1인 단가 × 인원</th>
+                    <th style={{ ...thS, width: "140px" }}>금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoice.items.map((it, i) => {
+                    const total = parseNum(it.unitPrice) * (parseNum(it.qty) || 1);
+                    return (
+                      <tr key={i}>
+                        <td style={{ ...tdS("left"), paddingLeft: "14px", wordBreak: "keep-all", lineHeight: "1.5" }}>{it.name.split("\n")[0]}</td>
+                        <td style={{ ...tdS("center"), fontVariantNumeric: "tabular-nums" }}>₩{fmtNum(parseNum(it.unitPrice))} × {parseNum(it.qty) || 1}인</td>
+                        <td style={{ ...tdS("right", true), fontVariantNumeric: "tabular-nums" }}>₩{fmtNum(total)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: "#f9f9f9" }}>
+                    <td colSpan={2} style={{ padding: "12px 14px", fontWeight: "800", borderTop: "2px solid #1B4332", textAlign: "left", fontSize: "13px", letterSpacing: "1px" }}>
+                      총 상품가
+                    </td>
+                    <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #1B4332", fontSize: "17px", color: "#111", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                      ₩{fmtNum(productTotal)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+
+          {/* 결제내역 (상세 입금 내역) */}
           <div style={{ padding: "6px 30px 6px" }}>
             <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 결제내역</div>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -3939,7 +3975,7 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                     <td style={tdS("center")}>{i + 1}</td>
                     <td style={tdS("left", true)}>{pm.label || "-"}</td>
                     <td style={tdS("center")}>{fmtRcDate(pm.date)}</td>
-                    <td style={{ ...tdS("right", true), color: "#1B4332" }}>₩{fmtNum(parseNum(pm.amount))}</td>
+                    <td style={{ ...tdS("right", true), color: "#1B4332", fontVariantNumeric: "tabular-nums" }}>₩{fmtNum(parseNum(pm.amount))}</td>
                   </tr>
                 ))}
                 {invoice.payments.filter(pm => parseNum(pm.amount) > 0 || pm.label).length === 0 && (
@@ -3947,52 +3983,27 @@ mealB/mealL/mealD에는 "조:", "중:", "석:" 접두어 제거하고 값만!
                 )}
               </tbody>
               <tfoot>
-                <tr style={{ background: "#f9f9f9" }}>
-                  <td colSpan={3} style={{ padding: "12px 12px", fontWeight: "800", borderTop: "2px solid #1B4332", textAlign: "center", fontSize: "13px", letterSpacing: "1px", whiteSpace: "nowrap" }}>
+                <tr style={{ background: "#e8f0e8" }}>
+                  <td colSpan={3} style={{ padding: "12px 12px", fontWeight: "800", borderTop: "2px solid #1B4332", textAlign: "center", fontSize: "13px", letterSpacing: "1px", whiteSpace: "nowrap", color: "#1B4332" }}>
                     총 영수 금액
                   </td>
-                  <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #1B4332", fontSize: "17px", color: "#1B4332", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: "12px 10px", textAlign: "right", fontWeight: "900", borderTop: "2px solid #1B4332", fontSize: "17px", color: "#1B4332", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
                     ₩{fmtNum(totalReceived)}
                   </td>
                 </tr>
+                {productTotal > 0 && balance !== 0 && (
+                  <tr style={{ background: balance > 0 ? "#fff5f5" : "#f0f9f4" }}>
+                    <td colSpan={3} style={{ padding: "10px 12px", fontWeight: "800", textAlign: "center", fontSize: "13px", letterSpacing: "1px", whiteSpace: "nowrap", color: balance > 0 ? "#c0392b" : "#1B4332", borderBottom: "1px solid #ddd" }}>
+                      {balance > 0 ? "미수금 (잔금)" : "환불 예정액"}
+                    </td>
+                    <td style={{ padding: "10px 10px", textAlign: "right", fontWeight: "900", fontSize: "15px", color: balance > 0 ? "#c0392b" : "#1B4332", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums", borderBottom: "1px solid #ddd" }}>
+                      ₩{fmtNum(Math.abs(balance))}
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             </table>
           </div>
-
-          {/* 상품가 정산 (상품가가 있을 때만) */}
-          {productTotal > 0 && (
-            <div style={{ padding: "6px 30px 6px" }}>
-              <div style={{ fontSize: "12px", fontWeight: "800", marginBottom: "6px" }}>● 상품가 정산</div>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
-                <tbody>
-                  {invoice.items.map((it, i) => {
-                    const total = parseNum(it.unitPrice) * (parseNum(it.qty) || 1);
-                    return (
-                      <tr key={i}>
-                        <td style={{ ...labelTd, width: "auto", textAlign: "left", paddingLeft: "14px" }}>{it.name.split("\n")[0]}</td>
-                        <td style={{ ...valueTd, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>₩{fmtNum(parseNum(it.unitPrice))} × {parseNum(it.qty) || 1}</td>
-                        <td style={{ ...valueTd, textAlign: "right", fontWeight: "700", fontVariantNumeric: "tabular-nums", width: "130px" }}>₩{fmtNum(total)}</td>
-                      </tr>
-                    );
-                  })}
-                  <tr>
-                    <td style={labelTd}>총 상품가</td>
-                    <td style={{ ...valueTd, textAlign: "right", fontWeight: "800", color: "#111" }} colSpan={2}>₩{fmtNum(productTotal)}</td>
-                  </tr>
-                  <tr>
-                    <td style={labelTd}>기 영수액</td>
-                    <td style={{ ...valueTd, textAlign: "right", color: "#1B4332", fontWeight: "700" }} colSpan={2}>₩{fmtNum(totalReceived)}</td>
-                  </tr>
-                  {balance !== 0 && (
-                    <tr>
-                      <td style={{ ...labelTd, background: balance > 0 ? "#fde8e8" : "#e8f5ee", color: balance > 0 ? "#c00" : "#1B4332" }}>{balance > 0 ? "미수금" : "환불액"}</td>
-                      <td style={{ ...valueTd, textAlign: "right", fontWeight: "900", color: balance > 0 ? "#c00" : "#1B4332", fontSize: "13px" }} colSpan={2}>₩{fmtNum(Math.abs(balance))}</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
 
           {/* 발행 정보 */}
           <div style={{ padding: "16px 30px 24px", marginTop: "10px", borderTop: "1px solid #eee" }}>
